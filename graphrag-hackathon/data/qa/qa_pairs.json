@@ -1,0 +1,62 @@
+[
+  {
+    "question": "What is the speed of light in a vacuum?",
+    "answer": "The speed of light in a vacuum is approximately 299,792,458 metres per second (about 3×10^8 m/s)."
+  },
+  {
+    "question": "Who invented the telephone and in what year?",
+    "answer": "Alexander Graham Bell is credited with inventing the telephone in 1876."
+  },
+  {
+    "question": "What is the chemical formula for water and what elements compose it?",
+    "answer": "Water has the chemical formula H2O, composed of two hydrogen atoms and one oxygen atom."
+  },
+  {
+    "question": "When did World War II end and what events marked its conclusion?",
+    "answer": "World War II ended in 1945, with Germany surrendering on 8 May (V-E Day) and Japan on 2 September (V-J Day) after the atomic bombings of Hiroshima and Nagasaki."
+  },
+  {
+    "question": "What is the largest planet in our solar system and what is it primarily composed of?",
+    "answer": "Jupiter is the largest planet in our solar system, composed primarily of hydrogen and helium."
+  },
+  {
+    "question": "Who wrote Romeo and Juliet and when was it written?",
+    "answer": "William Shakespeare wrote Romeo and Juliet, believed to have been written between 1594 and 1596."
+  },
+  {
+    "question": "What is photosynthesis and what inputs does it require?",
+    "answer": "Photosynthesis is the process by which plants, algae, and some bacteria convert sunlight, water, and carbon dioxide into glucose and oxygen."
+  },
+  {
+    "question": "Who was the first person to walk on the Moon and when did it happen?",
+    "answer": "Neil Armstrong was the first person to walk on the Moon on 20 July 1969 during NASA's Apollo 11 mission."
+  },
+  {
+    "question": "What is DNA and what is its structure?",
+    "answer": "DNA (deoxyribonucleic acid) is the molecule that carries genetic information in living organisms, structured as a double helix with base pairs of adenine-thymine and guanine-cytosine."
+  },
+  {
+    "question": "What is machine learning and how does it differ from traditional programming?",
+    "answer": "Machine learning is a subset of artificial intelligence where systems learn patterns from data to improve performance without being explicitly programmed for each task, unlike traditional programming which follows explicit rules."
+  },
+  {
+    "question": "What was Albert Einstein's most famous equation and what does it represent?",
+    "answer": "Albert Einstein's most famous equation is E=mc², which expresses mass-energy equivalence, stating that energy equals mass multiplied by the square of the speed of light."
+  },
+  {
+    "question": "What is the Amazon River and why is it significant?",
+    "answer": "The Amazon River in South America is the largest river by water discharge volume in the world, flowing through Brazil, Peru, and Colombia, and hosting the world's largest tropical rainforest."
+  },
+  {
+    "question": "What is the function of mitochondria in cells?",
+    "answer": "Mitochondria are organelles that generate most of the cell's supply of ATP (adenosine triphosphate), used as a source of chemical energy, hence they are called the powerhouse of the cell."
+  },
+  {
+    "question": "What is the Pythagorean theorem?",
+    "answer": "The Pythagorean theorem states that in a right-angled triangle, the square of the hypotenuse equals the sum of the squares of the other two sides: a² + b² = c²."
+  },
+  {
+    "question": "What caused the French Revolution and when did it begin?",
+    "answer": "The French Revolution began in 1789, caused by financial crisis, social inequality between estates, Enlightenment ideas, food shortages, and the weak leadership of King Louis XVI."
+  }
+]
