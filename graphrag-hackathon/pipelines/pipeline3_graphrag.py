@@ -4,7 +4,7 @@ import requests
 
 from pipelines.utils import count_tokens, make_result
 
-BASE = 'http://localhost:8010'
+BASE = 'http://localhost:8003'
 PARAMS = {
     'top_k': 3,
     'num_hops': 2,

@@ -4,7 +4,7 @@ import time
 import requests
 from tqdm import tqdm
 
-BASE = 'http://localhost:8010'
+BASE = 'http://localhost:8003'
 
 resp = requests.get(f'{BASE}/health', timeout=10)
 assert resp.status_code == 200, f'Health check failed: {resp.status_code}'
