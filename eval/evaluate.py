@@ -12,9 +12,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-from pipelines.pipeline1_llm import run as run_p1
-from pipelines.pipeline2_rag import run as run_p2
-from pipelines.pipeline3_graphrag import run as run_p3
+from pipelines.pipeline1_llm import pipeline1 as run_p1
+from pipelines.pipeline2_rag import pipeline2 as run_p2
+from pipelines.pipeline3_graphrag import pipeline3 as run_p3
 
 _judge = genai.GenerativeModel("gemini-1.5-flash")
 _judge_cfg = genai.types.GenerationConfig(temperature=0.0)

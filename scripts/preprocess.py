@@ -1,48 +1,52 @@
 import json
 import os
-
+import re
 import tiktoken
-from dotenv import load_dotenv
+from tqdm import tqdm
 
-load_dotenv()
-
-enc = tiktoken.get_encoding("cl100k_base")
-
-INPUT_PATH = "data/raw/wikipedia.jsonl"
+INPUT_PATH = "data/raw/dataset.jsonl"
 OUTPUT_PATH = "data/chunks/chunks.jsonl"
-CHUNK_SIZE = 256
-OVERLAP = 32
 
 os.makedirs("data/chunks", exist_ok=True)
 
+enc = tiktoken.get_encoding("cl100k_base")
 
-def chunk_text(text: str) -> list:
+
+def clean_text(text):
+    text = re.sub(r'==+[^=]+=+', '', text)
+    text = re.sub(r'\[\[([^\]|]*\|)?([^\]]*)\]\]', r'\2', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+
+def chunk_text(text, max_tok=256, overlap=32):
     tokens = enc.encode(text)
+    step = max_tok - overlap
     chunks = []
-    start = 0
-    while start < len(tokens):
-        end = min(start + CHUNK_SIZE, len(tokens))
+    for start in range(0, len(tokens), step):
+        end = min(start + max_tok, len(tokens))
         chunks.append(enc.decode(tokens[start:end]))
         if end == len(tokens):
             break
-        start += CHUNK_SIZE - OVERLAP
     return chunks
 
 
-chunk_id = 0
+total_chunks = 0
+
 with open(INPUT_PATH, encoding="utf-8") as fin, open(OUTPUT_PATH, "w", encoding="utf-8") as fout:
-    for line in fin:
-        article = json.loads(line)
-        for chunk in chunk_text(article["text"]):
+    lines = fin.readlines()
+    for line in tqdm(lines, desc="Preprocessing", unit="docs"):
+        doc = json.loads(line)
+        cleaned = clean_text(doc["text"])
+        chunks = chunk_text(cleaned)
+        for j, chunk in enumerate(chunks):
             record = {
-                "id": chunk_id,
-                "article_id": article["id"],
-                "title": article["title"],
+                "id": f"{doc['id']}_c{j}",
                 "text": chunk,
+                "source": doc["title"],
+                "doc_id": doc["id"],
             }
             fout.write(json.dumps(record, ensure_ascii=False) + "\n")
-            chunk_id += 1
-        if chunk_id % 5000 == 0:
-            print(f"Processed {chunk_id} chunks so far")
+            total_chunks += 1
 
-print(f"Total chunks written: {chunk_id}")
+print(f"Total chunks saved: {total_chunks}")
