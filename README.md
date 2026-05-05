@@ -7,12 +7,18 @@ maintaining >90% LLM-judge pass rate. Ship an interactive comparison dashboard.
 ## Setup order
 ```
 pip install -r api/requirements.txt
-python scripts/download_dataset.py    # ~1000 Wikipedia articles -> data/raw/
+python scripts/download_dataset.py    # Wikipedia articles -> data/raw/
 python scripts/preprocess.py          # 256-token chunks -> data/chunks/
-python scripts/build_faiss.py         # FAISS index -> data/faiss/
-# Start TigerGraph GraphRAG service at localhost:8000, then:
-python scripts/ingest_graphrag.py     # Push chunks into the graph
+python scripts/build_faiss.py         # FAISS index -> data/chunks/rag_index.faiss
+
+# Start TigerGraph workspace on tgcloud.io, then:
+python scripts/setup_tg_schema.py     # Create Article + Chunk schema with NEXT_CHUNK edges
+python scripts/ingest_tg.py           # Ingest 10,283 chunks with graph edges into TigerGraph
 ```
+
+> TigerGraph is required for Pipeline 3. Start the workspace on tgcloud.io before running
+> setup_tg_schema.py and ingest_tg.py. Once ingested, the graph persists — no need to
+> re-ingest on subsequent runs.
 
 ## Run
 ```
@@ -31,24 +37,17 @@ python eval/evaluate.py
 |---|------|----------|
 | 1 | pipelines/pipeline1_llm.py | Pure LLM, no retrieval |
 | 2 | pipelines/pipeline2_rag.py | FAISS vector search, top_k=5 |
-| 3 | pipelines/pipeline3_graphrag.py | TigerGraph community retrieval, top_k=3, num_hops=2 |
+| 3 | pipelines/pipeline3_graphrag.py | FAISS top_k=2 entry points → TigerGraph NEXT_CHUNK graph traversal → coherent article context |
 
 ## Key numbers
-- Token cost: $0.075 / 1M tokens (Gemini 1.5 Flash)
+- LLM: Groq llama-3.3-70b-versatile, temperature=0.0
 - Embeddings: all-MiniLM-L6-v2 (dim=384)
 - Token counter: tiktoken cl100k_base
-- temperature=0.0 everywhere
+- Avg token reduction (GraphRAG vs Basic RAG): ~66%
 
 ## API endpoints
 ```
-POST /compare          { "question": "..." }  -> all three pipelines + reduction %
-POST /query/p1|p2|p3   { "question": "..." }  -> single pipeline result
-GET  /results/summary  -> eval summary JSON
-GET  /health
+POST /compare   { "question": "...", "ground_truth": "..." }  -> all three pipelines + reduction %
+GET  /health    -> {"status":"ok"}
+GET  /          -> API info
 ```
-
-## GraphRAG service contract
-Expected at GRAPHRAG_URL (default http://localhost:8000).
-- POST /ingest   { "documents": [{id, text, metadata}] }
-- POST /retrieve { "query", "top_k", "num_hops", "community_level", "retriever_type" }
-                 -> { "context": "..." }
