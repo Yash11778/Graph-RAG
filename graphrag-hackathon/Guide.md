@@ -93,29 +93,49 @@ This installs: `fastapi`, `uvicorn`, `groq`, `faiss-cpu`, `sentence-transformers
 
 ## Step 3 — Build the Data Pipeline
 
-Run these once to download and preprocess the dataset. Skip if `data\chunks\` already exists.
+Run these once. Skip if `data\chunks\` already exists.
 
 ```powershell
-python scripts\download_dataset.py   # ~1000 Wikipedia articles → data\raw\
+python scripts\download_dataset.py   # Wikipedia articles → data\raw\
 python scripts\preprocess.py         # 256-token chunks → data\chunks\chunks.pkl
 python scripts\build_faiss.py        # FAISS index → data\chunks\rag_index.faiss
 ```
 
-> **Do NOT run `scripts\ingest_graphrag.py`** — it uses a legacy endpoint that no longer
-> exists. The TigerGraph graph (`MyDatabase`) is already populated with all 10,283 chunks.
-
 ---
 
-## Step 4 — TigerGraph (Pipeline 3 only)
+## Step 4 — TigerGraph Setup (required for Pipeline 3)
 
-Pipeline 3 fetches document context from TigerGraph Cloud. To enable live fetching:
+Pipeline 3 is the GraphRAG pipeline — it uses TigerGraph's graph structure to expand
+retrieved chunks into coherent article sections via `NEXT_CHUNK` edge traversal.
+
+### 4a — Start the workspace
 
 1. Log into [tgcloud.io](https://tgcloud.io)
-2. Start the workspace `MyWorkspace` (auto-start is disabled — start it manually)
-3. The graph `MyDatabase` is pre-populated — no further setup needed
+2. Start workspace `MyWorkspace` (auto-start is disabled — start it manually)
+3. Wait until the status shows **Running**
 
-> If TigerGraph is offline, Pipeline 3 automatically falls back to the local FAISS chunk
-> cache. Results are still valid; latency will actually be faster.
+### 4b — Create the schema
+
+```powershell
+python scripts\setup_tg_schema.py
+```
+
+This drops the old graph and creates:
+- `Article` vertex — one per Wikipedia article
+- `Chunk` vertex — one per 256-token chunk
+- `HAS_CHUNK` edge — Article → Chunk
+- `NEXT_CHUNK` edge — Chunk ↔ Chunk (sequential chunks within the same article)
+
+### 4c — Ingest data
+
+```powershell
+python scripts\ingest_tg.py
+```
+
+Ingests all 10,283 chunks with `HAS_CHUNK` and `NEXT_CHUNK` edges into TigerGraph (~4 minutes).
+
+> Once ingested the graph persists. You only need to re-run `setup_tg_schema.py` and
+> `ingest_tg.py` if you drop the graph or change the schema.
 
 ---
 
@@ -275,7 +295,13 @@ You need **three** PowerShell windows open simultaneously:
 |----------|----------|-----------|----------------|
 | 1 — LLM Only | No retrieval | ~62 | None — question only |
 | 2 — Basic RAG | FAISS top_k=5 | ~1,649 | Top 5 chunk texts concatenated |
-| 3 — GraphRAG | FAISS top_k=2 + TigerGraph | ~562 | Top 2 chunk IDs fetched from TigerGraph; local cache fallback |
+| 3 — GraphRAG | FAISS top_k=2 + TigerGraph graph traversal | ~562 | FAISS finds 2 entry chunks → TigerGraph traverses `NEXT_CHUNK` edges to fetch article-sibling chunks → coherent section of up to 500 tokens |
+
+### Why GraphRAG uses fewer tokens with better coherence
+
+Basic RAG (Pipeline 2) retrieves 5 independent chunks that may be from 5 different articles — high token cost, fragmented context.
+
+GraphRAG (Pipeline 3) retrieves 2 entry chunks then **walks the graph** to collect their neighbors within the same article. You get a coherent paragraph-level section rather than isolated fragments. The token cap (500) is enforced on the graph-expanded context, so the LLM always sees fewer, more relevant tokens.
 
 All three pipelines use **Groq** (`llama-3.3-70b-versatile`, temperature=0.0, max_tokens=400).
 Token counting uses `tiktoken cl100k_base`. Embeddings use `all-MiniLM-L6-v2` (dim=384).
@@ -296,8 +322,12 @@ Run the data pipeline steps in order (Step 3).
 The API is not running. Start it in Window 1 first (`uvicorn api.app:app --reload --port 8080`).
 
 **Pipeline 3 returns "The provided text does not state..."**
-TigerGraph workspace is offline. Start it on tgcloud.io, or use a question whose topic is
-covered in the Wikipedia dataset. Pipeline 3 still works via local fallback — just slower answers.
+The Wikipedia dataset is military/war-focused. Questions outside that domain will get weak
+context. Try questions about World War II, American Civil War, Vietnam War, etc.
+
+**TigerGraph graph traversal returns no neighbors**
+The `NEXT_CHUNK` edges may not have been ingested. Re-run `python scripts\ingest_tg.py`.
+If the workspace was restarted after a schema drop, run `setup_tg_schema.py` first.
 
 **CORS error in the browser**
 Make sure the API is running on port 8080 before opening the frontend. The API allows all
