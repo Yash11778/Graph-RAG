@@ -1,14 +1,14 @@
 import time
 
-from pipelines.utils import calc_cost, count_tokens, gemini_generate, make_result, setup_gemini
+from pipelines.utils import count_tokens, groq_generate, make_result, setup_groq
 
-model = setup_gemini()
+client = setup_groq()
 
 
 def pipeline1(question: str) -> dict:
     prompt = f'Answer concisely and accurately.\nQuestion: {question}'
     start = time.time()
-    answer = gemini_generate(model, prompt)
+    answer = groq_generate(client, prompt)
     latency = time.time() - start
     p_tok = count_tokens(prompt)
     c_tok = count_tokens(answer)

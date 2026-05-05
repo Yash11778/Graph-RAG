@@ -5,12 +5,12 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from pipelines.utils import count_tokens, gemini_generate, make_result, setup_gemini
+from pipelines.utils import count_tokens, groq_generate, make_result, setup_groq
 
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 index = faiss.read_index('data/chunks/rag_index.faiss')
 chunks = pickle.load(open('data/chunks/chunks.pkl', 'rb'))
-model = setup_gemini()
+client = setup_groq()
 
 
 def pipeline2(question: str, top_k: int = 5) -> dict:
@@ -25,7 +25,7 @@ def pipeline2(question: str, top_k: int = 5) -> dict:
 
     prompt = f'Context:\n{context}\n\nQuestion: {question}\nAnswer thoroughly.'
     start = time.time()
-    answer = gemini_generate(model, prompt)
+    answer = groq_generate(client, prompt)
     latency = round(time.time() - start, 3)
 
     p_tok = count_tokens(prompt)
