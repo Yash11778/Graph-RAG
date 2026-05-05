@@ -43,6 +43,10 @@ def compare(req: QueryRequest):
     return result
 
 
+@app.get('/')
+def root():
+    return {'status': 'ok', 'message': 'GraphRAG API — POST /compare to run all 3 pipelines'}
+
 @app.get('/health')
 def health():
     return {'status': 'ok'}
