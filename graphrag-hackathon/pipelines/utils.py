@@ -1,17 +1,24 @@
 import os
+import time
 
-import google.generativeai as genai
 import tiktoken
 from dotenv import load_dotenv
+from groq import Groq
 
 load_dotenv()
 
 enc = tiktoken.get_encoding('cl100k_base')
 
+GROQ_MODEL = 'llama-3.3-70b-versatile'
+_client: Groq | None = None
 
-def setup_gemini() -> genai.GenerativeModel:
-    genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-    return genai.GenerativeModel('gemini-1.5-flash')
+
+def setup_groq() -> Groq:
+    global _client
+    if _client is None:
+        api_key = os.getenv('GROQ_API_KEY', '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')
+        _client = Groq(api_key=api_key)
+    return _client
 
 
 def count_tokens(text: str) -> int:
@@ -19,7 +26,7 @@ def count_tokens(text: str) -> int:
 
 
 def calc_cost(tokens: int) -> float:
-    return (tokens / 1_000_000) * 0.075
+    return (tokens / 1_000_000) * 0.059  # llama-3.3-70b pricing
 
 
 def make_result(pipeline, answer, prompt_tok, comp_tok, latency) -> dict:
@@ -35,7 +42,20 @@ def make_result(pipeline, answer, prompt_tok, comp_tok, latency) -> dict:
     }
 
 
-def gemini_generate(model: genai.GenerativeModel, prompt: str) -> str:
-    cfg = genai.types.GenerationConfig(temperature=0.0, max_output_tokens=400)
-    response = model.generate_content(prompt, generation_config=cfg)
-    return response.text.strip()
+def groq_generate(client: Groq, prompt: str) -> str:
+    for attempt in range(5):
+        try:
+            response = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[{'role': 'user', 'content': prompt}],
+                temperature=0.0,
+                max_tokens=400,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            if ('429' in str(e) or 'rate' in str(e).lower()) and attempt < 4:
+                wait = 30 * (attempt + 1)
+                print(f'  [rate limit] waiting {wait}s...', flush=True)
+                time.sleep(wait)
+            else:
+                raise
