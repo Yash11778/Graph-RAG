@@ -13,11 +13,10 @@ os.makedirs("data/raw", exist_ok=True)
 enc = tiktoken.get_encoding("cl100k_base")
 
 dataset = load_dataset(
-    "wikipedia",
-    "20220301.en",
+    "wikimedia/wikipedia",
+    "20231101.en",
     split="train",
     streaming=True,
-    trust_remote_code=True,
 )
 
 total_docs = 0
