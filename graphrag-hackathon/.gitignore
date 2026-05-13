@@ -8,11 +8,14 @@ venv/
 
 data/raw/
 data/faiss/
-data/chunks/
 eval/results/
+
+# data/chunks — commit only the runtime artefacts needed for the API
+data/chunks/chunks.jsonl
+data/ingest_progress.json
+data/chunks/failed_ingestion.json
 
 node_modules/
 frontend/dist/
 
 *.bin
-*.jsonl

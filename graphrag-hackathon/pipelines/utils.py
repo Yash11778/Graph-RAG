@@ -9,14 +9,14 @@ load_dotenv()
 
 enc = tiktoken.get_encoding('cl100k_base')
 
-GROQ_MODEL = 'llama-3.3-70b-versatile'
+GROQ_MODEL = 'llama-3.1-8b-instant'
 _client: Groq | None = None
 
 
 def setup_groq() -> Groq:
     global _client
     if _client is None:
-        api_key = os.getenv('GROQ_API_KEY', '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')
+        api_key = os.getenv('GROQ_API_KEY', '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')
         _client = Groq(api_key=api_key)
     return _client
 
@@ -25,24 +25,20 @@ def count_tokens(text: str) -> int:
     return len(enc.encode(text))
 
 
-def calc_cost(tokens: int) -> float:
-    return (tokens / 1_000_000) * 0.059  # llama-3.3-70b pricing
-
-
 def make_result(pipeline, answer, prompt_tok, comp_tok, latency) -> dict:
     total = prompt_tok + comp_tok
     return {
-        'pipeline': pipeline,
-        'answer': answer,
-        'prompt_tokens': prompt_tok,
+        'pipeline':          pipeline,
+        'answer':            answer,
+        'prompt_tokens':     prompt_tok,
         'completion_tokens': comp_tok,
-        'total_tokens': total,
-        'latency_s': latency,
-        'cost_usd': round(calc_cost(total), 8),
+        'total_tokens':      total,
+        'latency_s':         latency,
+        'cost_usd':          0.0,
     }
 
 
-def groq_generate(client: Groq, prompt: str, max_tokens: int = 400) -> str:
+def groq_generate(client: Groq, prompt: str, max_tokens: int = 200) -> str:
     for attempt in range(5):
         try:
             response = client.chat.completions.create(
@@ -53,8 +49,11 @@ def groq_generate(client: Groq, prompt: str, max_tokens: int = 400) -> str:
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            if ('429' in str(e) or 'rate' in str(e).lower()) and attempt < 4:
-                wait = 30 * (attempt + 1)
+            err = str(e)
+            # Retry only on per-minute rate limits, not daily token limits
+            is_tpm_limit = '429' in err and 'per_day' not in err and 'tokens per day' not in err.lower()
+            if is_tpm_limit and attempt < 4:
+                wait = 5 * (attempt + 1)
                 print(f'  [rate limit] waiting {wait}s...', flush=True)
                 time.sleep(wait)
             else:
