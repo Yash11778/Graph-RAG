@@ -47,19 +47,19 @@ def _load():
     global _embedder, _faiss_index, _chunks, _groq_client
     if _embedder is None:
         import faiss
-        from sentence_transformers import SentenceTransformer
-        _embedder    = SentenceTransformer('all-MiniLM-L6-v2')
+        from fastembed import TextEmbedding
+        _embedder    = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
         _faiss_index = faiss.read_index(str(_ROOT / 'data/chunks/rag_index.faiss'))
         _chunks      = pickle.load(open(str(_ROOT / 'data/chunks/chunks.pkl'), 'rb'))
         _groq_client = setup_groq()
 
 
 def _faiss_retrieve(question: str, top_k: int = 1) -> list[dict]:
-    import faiss
     import numpy as np
-    emb = _embedder.encode([question], normalize_embeddings=True)
-    emb = np.array(emb, dtype=np.float32)
-    faiss.normalize_L2(emb)
+    emb = list(_embedder.embed([question]))[0]
+    emb = np.array(emb, dtype=np.float32).reshape(1, -1)
+    norm = (emb ** 2).sum(axis=1, keepdims=True) ** 0.5
+    emb = emb / (norm + 1e-10)
     _, idxs = _faiss_index.search(emb, top_k)
     return [_chunks[i] for i in idxs[0] if i < len(_chunks)]
 
