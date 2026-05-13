@@ -16,37 +16,49 @@ from pipelines.pipeline3_graphrag import pipeline3
 from eval.evaluate import llm_judge, compute_bertscore
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
 class QueryRequest(BaseModel):
     question: str
-    ground_truth: str = ''
+    ground_truth: str = ""
 
 
-@app.post('/compare')
+@app.post("/compare")
 def compare(req: QueryRequest):
     p1 = pipeline1(req.question)
     p2 = pipeline2(req.question)
     p3 = pipeline3(req.question)
-    token_reduction = round((1 - p3['total_tokens'] / p2['total_tokens']) * 100, 1)
-    cost_reduction = token_reduction
+
+    token_reduction = round((1 - p3["total_tokens"] / max(p2["total_tokens"], 1)) * 100, 1)
+
     result = {
-        'llm_only': p1,
-        'basic_rag': p2,
-        'graphrag': p3,
-        'token_reduction_pct': token_reduction,
-        'cost_reduction_pct': cost_reduction,
+        "llm_only":          p1,
+        "basic_rag":         p2,
+        "graphrag":          p3,
+        "token_reduction_pct": token_reduction,
+        "cost_reduction_pct":  token_reduction,
     }
+
     if req.ground_truth:
-        result['judge_graphrag'] = llm_judge(req.question, req.ground_truth, p3['answer'])
+        result["judge_llm_only"]  = llm_judge(req.question, req.ground_truth, p1["answer"])
+        result["judge_basic_rag"] = llm_judge(req.question, req.ground_truth, p2["answer"])
+        result["judge_graphrag"]  = llm_judge(req.question, req.ground_truth, p3["answer"])
+
+        bs = compute_bertscore(
+            predictions=[p3["answer"]],
+            references=[req.ground_truth],
+        )
+        result["bertscore"] = bs
+
     return result
 
 
-@app.get('/')
+@app.get("/")
 def root():
-    return {'status': 'ok', 'message': 'GraphRAG API — POST /compare to run all 3 pipelines'}
+    return {"status": "ok", "message": "GraphRAG API — POST /compare"}
 
-@app.get('/health')
+
+@app.get("/health")
 def health():
-    return {'status': 'ok'}
+    return {"status": "ok"}

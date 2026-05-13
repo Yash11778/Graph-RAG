@@ -1,5 +1,6 @@
 import pickle
 import time
+from pathlib import Path
 
 import faiss
 import numpy as np
@@ -7,9 +8,10 @@ from sentence_transformers import SentenceTransformer
 
 from pipelines.utils import count_tokens, groq_generate, make_result, setup_groq
 
+_ROOT = Path(__file__).parent.parent.resolve()
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
-index = faiss.read_index('data/chunks/rag_index.faiss')
-chunks = pickle.load(open('data/chunks/chunks.pkl', 'rb'))
+index = faiss.read_index(str(_ROOT / 'data/chunks/rag_index.faiss'))
+chunks = pickle.load(open(str(_ROOT / 'data/chunks/chunks.pkl'), 'rb'))
 client = setup_groq()
 
 
@@ -21,7 +23,7 @@ def pipeline2(question: str, top_k: int = 5) -> dict:
 
     retrieved = [chunks[i] for i in idxs[0] if i < len(chunks)]
     context = '\n\n---\n\n'.join(c['text'] for c in retrieved)
-    sources = [c.get('title', '') for c in retrieved]
+    sources = [c.get('source', c.get('title', '')) for c in retrieved]
 
     prompt = f'Context:\n{context}\n\nQuestion: {question}\nAnswer thoroughly.'
     start = time.time()

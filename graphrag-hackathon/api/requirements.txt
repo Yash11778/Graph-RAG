@@ -1,4 +1,5 @@
 fastapi
+pyTigerGraph
 uvicorn[standard]
 pydantic
 python-dotenv
