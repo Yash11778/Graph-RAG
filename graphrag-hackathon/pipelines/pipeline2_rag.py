@@ -2,10 +2,6 @@ import pickle
 import time
 from pathlib import Path
 
-import faiss
-import numpy as np
-from sentence_transformers import SentenceTransformer
-
 from pipelines.utils import count_tokens, groq_generate, make_result, setup_groq
 
 _ROOT = Path(__file__).parent.parent.resolve()
@@ -18,6 +14,9 @@ _client = None
 def _load():
     global _embedder, _index, _chunks, _client
     if _embedder is None:
+        import faiss
+        import numpy as np
+        from sentence_transformers import SentenceTransformer
         _embedder = SentenceTransformer('all-MiniLM-L6-v2')
         _index = faiss.read_index(str(_ROOT / 'data/chunks/rag_index.faiss'))
         _chunks = pickle.load(open(str(_ROOT / 'data/chunks/chunks.pkl'), 'rb'))
@@ -25,6 +24,8 @@ def _load():
 
 
 def pipeline2(question: str, top_k: int = 5) -> dict:
+    import faiss
+    import numpy as np
     _load()
     emb = _embedder.encode([question], normalize_embeddings=True)
     emb = np.array(emb, dtype=np.float32)
