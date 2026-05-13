@@ -40,10 +40,19 @@ HYBRID_PARAMS = {
 }
 
 _ROOT = Path(__file__).parent.parent.resolve()
-_embedder    = SentenceTransformer('all-MiniLM-L6-v2')
-_faiss_index = faiss.read_index(str(_ROOT / 'data/chunks/rag_index.faiss'))
-_chunks      = pickle.load(open(str(_ROOT / 'data/chunks/chunks.pkl'), 'rb'))
-_groq_client = setup_groq()
+_embedder    = None
+_faiss_index = None
+_chunks      = None
+_groq_client = None
+
+
+def _load():
+    global _embedder, _faiss_index, _chunks, _groq_client
+    if _embedder is None:
+        _embedder    = SentenceTransformer('all-MiniLM-L6-v2')
+        _faiss_index = faiss.read_index(str(_ROOT / 'data/chunks/rag_index.faiss'))
+        _chunks      = pickle.load(open(str(_ROOT / 'data/chunks/chunks.pkl'), 'rb'))
+        _groq_client = setup_groq()
 
 
 def _faiss_retrieve(question: str, top_k: int = 1) -> list[dict]:
@@ -106,6 +115,7 @@ def _tg_retrieve(question: str, deadline: float = 8.0) -> list[str]:
 
 
 def pipeline3(question: str) -> dict:
+    _load()
     t_start = time.time()
 
     faiss_chunks  = _faiss_retrieve(question, top_k=1)
