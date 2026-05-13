@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y libgomp1 && rm -rf /var/lib/apt/lists/*
 COPY api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download the fastembed ONNX model so it's baked into the image
+# and never downloaded at runtime (avoids 60-90s delay on first request)
+RUN python -c "from fastembed import TextEmbedding; list(TextEmbedding('sentence-transformers/all-MiniLM-L6-v2').embed(['warmup'])); print('fastembed model cached')"
+
 COPY . .
 
 ENV PYTHONUNBUFFERED=1
