@@ -1,342 +1,188 @@
-# GraphRAG Hackathon — Run Guide (PowerShell)
+# How to Run the GraphRAG Hackathon Project
 
-This project compares three LLM inference strategies and proves that GraphRAG (Pipeline 3) uses
-60–80% fewer tokens than Basic RAG (Pipeline 2) while maintaining answer quality.
+## What's in this project
 
-All commands below are written for **Windows PowerShell**. Open PowerShell and `cd` into the
-project root before running anything.
+Three retrieval pipelines compared side-by-side:
 
-```powershell
-cd "D:\HACKATHONS\Graph RAG\graphrag-hackathon\graphrag-hackathon"
-```
+| Pipeline | Strategy | Notes |
+|----------|----------|-------|
+| Pipeline 1 — LLM-Only | Raw Groq call, no retrieval | Baseline |
+| Pipeline 2 — Basic RAG | FAISS top-5 → Groq | ~1,400 tokens/query |
+| Pipeline 3 — GraphRAG | FAISS seed + TigerGraph hybrid graph expansion → Groq | ~150–300 tokens/query |
+
+A React dashboard (port 5173) lets you query all three at once and see token/accuracy comparisons.
 
 ---
 
 ## Prerequisites
 
 - Python 3.10+
-- Node.js 18+
-- A [Groq](https://console.groq.com) account (free tier, get an API key)
-- A [TigerGraph Cloud](https://tgcloud.io) workspace (free tier)
+- Docker Desktop (running)
+- Node.js 18+ (for frontend)
+- A `.env` file in `graphrag-hackathon/` with at least:
+  ```
+  GROQ_API_KEY=gsk_...
+  ```
 
 ---
 
-## Project Structure
+## One-time data setup (only needed once)
 
+Run these from `graphrag-hackathon/`:
+
+```bash
+pip install -r api/requirements.txt
+
+python scripts/download_dataset.py      # downloads Wikipedia articles → data/raw/
+python scripts/preprocess.py            # chunks articles → data/chunks/chunks.pkl
+python scripts/build_faiss.py           # builds FAISS index → data/chunks/rag_index.faiss
+python scripts/generate_qa_pairs.py     # creates data/qa/qa_pairs.json
 ```
-graphrag-hackathon/
-├── api/
-│   ├── app.py                  # FastAPI backend
-│   └── requirements.txt
-├── eval/
-│   ├── evaluate.py             # Full pipeline evaluation
-│   └── results/
-│       └── eval_results.csv
-├── frontend/
-│   └── src/
-│       └── App.jsx             # React dashboard
-├── pipelines/
-│   ├── pipeline1_llm.py        # LLM-only (no retrieval)
-│   ├── pipeline2_rag.py        # Basic RAG (FAISS, top_k=5)
-│   ├── pipeline3_graphrag.py   # GraphRAG (FAISS + TigerGraph, top_k=2)
-│   └── utils.py                # Groq client, token counter, shared helpers
-├── scripts/
-│   ├── download_dataset.py     # Downloads ~1000 Wikipedia articles
-│   ├── preprocess.py           # Chunks articles into 256-token segments
-│   ├── build_faiss.py          # Builds FAISS index from chunks
-│   └── ingest_graphrag.py      # (legacy — data already ingested, skip this)
-├── data/
-│   ├── raw/                    # Downloaded Wikipedia articles
-│   ├── chunks/                 # Preprocessed chunks + FAISS index
-│   └── qa/
-│       └── qa_pairs.json       # 15 evaluation questions with ground truth
-└── .env                        # API keys and TigerGraph connection details
-```
+
+If `data/chunks/chunks.pkl` and `data/chunks/rag_index.faiss` already exist, skip those steps.
 
 ---
 
-## Step 1 — Environment Variables
+## Running the project
 
-Edit `.env` in the project root. It should contain:
+### Option A — Without TigerGraph (Pipeline 3 falls back to FAISS-only)
 
-```env
-GROQ_API_KEY=your_groq_api_key_here
-TG_HOST=https://<your-workspace>.tg-<id>.i.tgcloud.io
-TG_USERNAME=your_tgcloud_email
-TG_PASSWORD=your_tgcloud_password
-TG_GRAPH=MyDatabase
-GRAPHRAG_URL=http://localhost:8000
-```
+This is the current working state. Pipeline 3 will still return answers using FAISS context but skips the graph expansion step.
 
-To edit it in PowerShell:
-
-```powershell
-notepad .env
-```
-
-> `GROQ_API_KEY` is the only key required to run all three pipelines and the full eval.
-> TigerGraph credentials are used by Pipeline 3 to fetch documents; it falls back to the
-> local FAISS cache if TigerGraph is unreachable.
-
----
-
-## Step 2 — Python Dependencies
-
-```powershell
-pip install -r api\requirements.txt
-```
-
-This installs: `fastapi`, `uvicorn`, `groq`, `faiss-cpu`, `sentence-transformers`,
-`bert-score`, `torch`, `transformers`, `tiktoken`, `pandas`, `requests`, `python-dotenv`.
-
----
-
-## Step 3 — Build the Data Pipeline
-
-Run these once. Skip if `data\chunks\` already exists.
-
-```powershell
-python scripts\download_dataset.py   # Wikipedia articles → data\raw\
-python scripts\preprocess.py         # 256-token chunks → data\chunks\chunks.pkl
-python scripts\build_faiss.py        # FAISS index → data\chunks\rag_index.faiss
-```
-
----
-
-## Step 4 — TigerGraph Setup (required for Pipeline 3)
-
-Pipeline 3 is the GraphRAG pipeline — it uses TigerGraph's graph structure to expand
-retrieved chunks into coherent article sections via `NEXT_CHUNK` edge traversal.
-
-### 4a — Start the workspace
-
-1. Log into [tgcloud.io](https://tgcloud.io)
-2. Start workspace `MyWorkspace` (auto-start is disabled — start it manually)
-3. Wait until the status shows **Running**
-
-### 4b — Create the schema
-
-```powershell
-python scripts\setup_tg_schema.py
-```
-
-This drops the old graph and creates:
-- `Article` vertex — one per Wikipedia article
-- `Chunk` vertex — one per 256-token chunk
-- `HAS_CHUNK` edge — Article → Chunk
-- `NEXT_CHUNK` edge — Chunk ↔ Chunk (sequential chunks within the same article)
-
-### 4c — Ingest data
-
-```powershell
-python scripts\ingest_tg.py
-```
-
-Ingests all 10,283 chunks with `HAS_CHUNK` and `NEXT_CHUNK` edges into TigerGraph (~4 minutes).
-
-> Once ingested the graph persists. You only need to re-run `setup_tg_schema.py` and
-> `ingest_tg.py` if you drop the graph or change the schema.
-
----
-
-## Step 5 — Run the API
-
-Open a PowerShell window and run:
-
-```powershell
+**Terminal 1 — API server** (from `graphrag-hackathon/`)
+```bash
 uvicorn api.app:app --reload --port 8080
 ```
 
-Leave this window open. The API runs on `http://localhost:8080`.
-
-To verify it is alive, open a **second** PowerShell window and run:
-
-```powershell
-Invoke-RestMethod http://localhost:8080/health
-```
-
-Expected output:
-```
-status
-------
-ok
-```
-
-### Test a full query from PowerShell
-
-```powershell
-$body = '{"question":"What is the speed of light?","ground_truth":"299792458 m/s"}'
-Invoke-RestMethod -Uri http://localhost:8080/compare `
-    -Method POST `
-    -ContentType "application/json" `
-    -Body $body | ConvertTo-Json -Depth 5
-```
-
-### API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Health check |
-| `POST` | `/compare` | Run all 3 pipelines, return results + token reduction % |
-
-#### `/compare` request body
-
-```json
-{
-  "question": "What is the speed of light?",
-  "ground_truth": "299,792,458 m/s"
-}
-```
-
-`ground_truth` is optional. When provided, an LLM judge scores the GraphRAG answer `PASS` or `FAIL`.
-
-#### `/compare` response
-
-```json
-{
-  "llm_only":  { "answer": "...", "total_tokens": 35,   "latency_s": 0.5  },
-  "basic_rag": { "answer": "...", "total_tokens": 1702, "latency_s": 1.6  },
-  "graphrag":  { "answer": "...", "total_tokens": 558,  "latency_s": 11.4 },
-  "token_reduction_pct": 67.2,
-  "cost_reduction_pct":  67.2,
-  "judge_graphrag": "PASS"
-}
-```
-
----
-
-## Step 6 — Run the Frontend Dashboard
-
-Open a **new** PowerShell window (keep the API window running):
-
-```powershell
-cd frontend
+**Terminal 2 — Frontend** (from `graphrag-hackathon/frontend/`)
+```bash
 npm install
 npm run dev
 ```
 
-Then open `http://localhost:5173` in your browser.
-
-### Dashboard features
-
-- Type a question and optionally a ground truth answer
-- Click **Run All 3 Pipelines**
-- A **green banner** shows the token reduction (e.g. `GraphRAG used 67.2% fewer tokens than Basic RAG`)
-- A **bar chart** compares token counts across all three pipelines (red / orange / green)
-- **3 answer cards** show each pipeline's answer, token count, latency, and cost
-  - The GraphRAG card has a green border
-  - If a ground truth was provided, a **PASS / FAIL badge** appears on the GraphRAG card
-- A **query history table** at the bottom tracks all queries in the session
+Open http://localhost:5173
 
 ---
 
-## Step 7 — Run the Full Evaluation
+### Option B — With TigerGraph GraphRAG (full Pipeline 3)
 
-Open a **new** PowerShell window (project root, API does not need to be running for eval):
+#### Step 1 — Start the Docker stack
 
-```powershell
-python eval\evaluate.py
+From `graphrag-hackathon/graphrag/`:
+```bash
+docker compose up -d graphrag graphrag-ecc chat-history
 ```
 
-This runs all 15 QA pairs through all 3 pipelines, judges each answer, computes BERTScore,
-and saves results to `eval\results\eval_results.csv`.
+Wait ~30 seconds for services to be healthy. The GraphRAG service listens on **port 8003**.
 
-### Expected output
-
-```
-=== EVALUATION SUMMARY ===
-
-[llm_only]
-  pass_rate:   93.3%
-  avg_tokens:  61.9
-  avg_latency: 0.281s
-
-[basic_rag]
-  pass_rate:   86.7%
-  avg_tokens:  1648.8
-  avg_latency: 1.960s
-
-[graphrag]
-  pass_rate:   53.3%
-  avg_tokens:  561.5
-  avg_latency: 9.107s
-
-Token reduction (graphrag vs basic_rag): 65.9%
-
-BERTScore raw_f1:      0.9017
-BERTScore rescaled_f1: 0.8034
-BERTScore bonus_hit:   True
-
-FINAL: token_reduction=65.9%, judge_pass_rate=53.3%, bertscore_rescaled=0.8034
-BONUS STATUS: MISSED judge | HIT bertscore
+Verify it's up:
+```bash
+curl http://localhost:8003/
 ```
 
-> The token reduction target (60–80%) is met. The lower judge pass rate for GraphRAG is a
-> dataset coverage issue — not all 15 QA topics are well-represented in the Wikipedia corpus,
-> so top-2 retrieval sometimes misses the right chunk.
+#### Step 2 — Initialize the schema (only once after fresh Docker start)
+
+From `graphrag-hackathon/`:
+```bash
+python scripts/init_graphrag_service.py
+```
+
+#### Step 3 — Ingest data (only once, or after wiping the database)
+
+```bash
+python scripts/ingest_via_graphrag.py
+```
+
+This pushes Wikipedia articles through the GraphRAG service (chunking + embedding + entity extraction). Takes 30–60 minutes for the full dataset.
+
+To re-ingest only articles that failed previously:
+```bash
+python scripts/reingest_failed.py
+```
+
+#### Step 4 — Start API + frontend (same as Option A)
+
+```bash
+# Terminal 1 — from graphrag-hackathon/
+uvicorn api.app:app --reload --port 8080
+
+# Terminal 2 — from graphrag-hackathon/frontend/
+npm run dev
+```
 
 ---
 
-## Window Layout for a Full Run
+## Running the evaluation
 
-You need **three** PowerShell windows open simultaneously:
-
-| Window | What runs there |
-|--------|----------------|
-| 1 | `uvicorn api.app:app --reload --port 8080` |
-| 2 | `cd frontend; npm run dev` |
-| 3 | Free for running eval, testing API, or anything else |
-
----
-
-## Pipelines — How They Work
-
-| Pipeline | Strategy | Avg tokens | Context source |
-|----------|----------|-----------|----------------|
-| 1 — LLM Only | No retrieval | ~62 | None — question only |
-| 2 — Basic RAG | FAISS top_k=5 | ~1,649 | Top 5 chunk texts concatenated |
-| 3 — GraphRAG | FAISS top_k=2 + TigerGraph graph traversal | ~562 | FAISS finds 2 entry chunks → TigerGraph traverses `NEXT_CHUNK` edges to fetch article-sibling chunks → coherent section of up to 500 tokens |
-
-### Why GraphRAG uses fewer tokens with better coherence
-
-Basic RAG (Pipeline 2) retrieves 5 independent chunks that may be from 5 different articles — high token cost, fragmented context.
-
-GraphRAG (Pipeline 3) retrieves 2 entry chunks then **walks the graph** to collect their neighbors within the same article. You get a coherent paragraph-level section rather than isolated fragments. The token cap (500) is enforced on the graph-expanded context, so the LLM always sees fewer, more relevant tokens.
-
-All three pipelines use **Groq** (`llama-3.3-70b-versatile`, temperature=0.0, max_tokens=400).
-Token counting uses `tiktoken cl100k_base`. Embeddings use `all-MiniLM-L6-v2` (dim=384).
-
----
-
-## Common Issues
-
-**`ModuleNotFoundError: No module named 'groq'`**
-```powershell
-pip install groq
+From `graphrag-hackathon/`:
+```bash
+python eval/evaluate.py
 ```
 
-**`FileNotFoundError: data/chunks/rag_index.faiss`**
-Run the data pipeline steps in order (Step 3).
+Runs all 20 QA pairs through all three pipelines, judges each answer (PASS/FAIL), computes BERTScore, and writes results to `eval/results/eval_results.csv`.
 
-**`Invoke-RestMethod` returns a red error instead of JSON**
-The API is not running. Start it in Window 1 first (`uvicorn api.app:app --reload --port 8080`).
+---
 
-**Pipeline 3 returns "The provided text does not state..."**
-The Wikipedia dataset is military/war-focused. Questions outside that domain will get weak
-context. Try questions about World War II, American Civil War, Vietnam War, etc.
+## Why you see `TG retrieval error` during evaluation
 
-**TigerGraph graph traversal returns no neighbors**
-The `NEXT_CHUNK` edges may not have been ingested. Re-run `python scripts\ingest_tg.py`.
-If the workspace was restarted after a schema drop, run `setup_tg_schema.py` first.
+```
+TG retrieval error: HTTPConnectionPool(host='localhost', port=8003):
+  Max retries exceeded ... No connection could be made because the
+  target machine actively refused it
+```
 
-**CORS error in the browser**
-Make sure the API is running on port 8080 before opening the frontend. The API allows all
-origins (`*`) by default.
+**Cause:** The TigerGraph GraphRAG Docker service (port 8003) is not running.
 
-**BERTScore download is slow on first run**
-`roberta-large` (~1.4 GB) is downloaded from HuggingFace and cached in
-`C:\Users\<you>\.cache\huggingface\`. Subsequent runs are instant.
+**Effect:** Pipeline 3 falls back gracefully to FAISS-only context and still produces answers. The `[graphrag] judge=PASS` lines you see are real — answers come from FAISS retrieval without graph expansion.
 
-**Groq rate limit (HTTP 429)**
-The free tier allows ~6,000 tokens/min. The code retries automatically with 30s backoff.
-Running the full 15-question eval stays within limits with the retries in place.
+**Fix:** Start the Docker stack as in Option B, Step 1.
+
+---
+
+## Project structure
+
+```
+graphrag-hackathon/
+├── api/
+│   ├── app.py                  # FastAPI — POST /compare
+│   └── requirements.txt
+├── data/
+│   ├── raw/                    # downloaded Wikipedia articles
+│   ├── chunks/                 # FAISS index + pickled chunks
+│   └── qa/qa_pairs.json        # 20 QA pairs for evaluation
+├── eval/
+│   ├── evaluate.py             # full evaluation script
+│   └── results/eval_results.csv
+├── frontend/                   # React + Recharts dashboard
+├── graphrag/                   # TigerGraph GraphRAG repo (Docker)
+│   ├── docker-compose.yml
+│   └── configs/server_config.json
+├── pipelines/
+│   ├── pipeline1_llm.py        # LLM-only
+│   ├── pipeline2_rag.py        # FAISS RAG
+│   ├── pipeline3_graphrag.py   # FAISS seed + TigerGraph hybrid
+│   └── utils.py                # Groq client, token counting
+└── scripts/
+    ├── download_dataset.py
+    ├── preprocess.py
+    ├── build_faiss.py
+    ├── generate_qa_pairs.py
+    ├── init_graphrag_service.py
+    └── ingest_via_graphrag.py
+```
+
+---
+
+## API
+
+```
+POST http://localhost:8080/compare
+Content-Type: application/json
+
+{
+  "question": "Who invented the telephone?",
+  "ground_truth": "Alexander Graham Bell"
+}
+```
+
+`ground_truth` is optional — include it to get LLM judge verdicts and BERTScore in the response.

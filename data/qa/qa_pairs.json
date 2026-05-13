@@ -1,62 +1,102 @@
 [
   {
-    "question": "What is the speed of light in a vacuum?",
-    "answer": "The speed of light in a vacuum is approximately 299,792,458 metres per second (about 3×10^8 m/s)."
+    "question": "When was Quest Software founded and where was it initially headquartered?",
+    "answer": "Quest Software was founded in 1987 and was initially headquartered in Newport Beach, California.",
+    "source": "Quest Software"
   },
   {
-    "question": "Who invented the telephone and in what year?",
-    "answer": "Alexander Graham Bell is credited with inventing the telephone in 1876."
+    "question": "In what year was the Cy Young Award first introduced and who introduced it?",
+    "answer": "The Cy Young Award was first introduced in 1956 by Baseball Commissioner Ford Frick.",
+    "source": "Cy Young Award"
   },
   {
-    "question": "What is the chemical formula for water and what elements compose it?",
-    "answer": "Water has the chemical formula H2O, composed of two hydrogen atoms and one oxygen atom."
+    "question": "When was the Australian Army formed and what was it initially known as?",
+    "answer": "The Australian Army was formed in 1901 as the Commonwealth Military Forces.",
+    "source": "Australian Army"
   },
   {
-    "question": "When did World War II end and what events marked its conclusion?",
-    "answer": "World War II ended in 1945, with Germany surrendering on 8 May (V-E Day) and Japan on 2 September (V-J Day) after the atomic bombings of Hiroshima and Nagasaki."
+    "question": "When was Admiral Sir John Forster Sandy Woodward born?",
+    "answer": "Admiral Sir John Forster Sandy Woodward was born on 1 May 1932 at Penzance, Cornwall, to a bank clerk.",
+    "source": "Sandy Woodward"
   },
   {
-    "question": "What is the largest planet in our solar system and what is it primarily composed of?",
-    "answer": "Jupiter is the largest planet in our solar system, composed primarily of hydrogen and helium."
+    "question": "In what year was the book The Golden Turkey Awards written by film critic Michael Medved and his brother Harry?",
+    "answer": "The Golden Turkey Awards is a 1980 book by film critic Michael Medved and his brother Harry.",
+    "source": "The Golden Turkey Awards"
   },
   {
-    "question": "Who wrote Romeo and Juliet and when was it written?",
-    "answer": "William Shakespeare wrote Romeo and Juliet, believed to have been written between 1594 and 1596."
+    "question": "What is the role of generalization in logic, mathematics, and science?",
+    "answer": "Generalizations are the essential basis of all valid deductive inferences, particularly in logic, mathematics and science, where the process of verification is necessary to determine whether a generalization holds true for any given situation.",
+    "source": "Generalization"
   },
   {
-    "question": "What is photosynthesis and what inputs does it require?",
-    "answer": "Photosynthesis is the process by which plants, algae, and some bacteria convert sunlight, water, and carbon dioxide into glucose and oxygen."
+    "question": "Who originally developed the Dia software?",
+    "answer": "Dia was developed originally by Alexander Larsson.",
+    "source": "Dia (software)"
   },
   {
-    "question": "Who was the first person to walk on the Moon and when did it happen?",
-    "answer": "Neil Armstrong was the first person to walk on the Moon on 20 July 1969 during NASA's Apollo 11 mission."
+    "question": "What is the role of the President of Colombia in the military?",
+    "answer": "The President of Colombia is the military's commander in chief, and helps formulate defense policy through the Ministry of National Defence.",
+    "source": "Military Forces of Colombia"
   },
   {
-    "question": "What is DNA and what is its structure?",
-    "answer": "DNA (deoxyribonucleic acid) is the molecule that carries genetic information in living organisms, structured as a double helix with base pairs of adenine-thymine and guanine-cytosine."
+    "question": "When did the Battle of Ad Decimum take place?",
+    "answer": "The Battle of Ad Decimum took place on September 13, 533.",
+    "source": "Battle of Ad Decimum"
   },
   {
-    "question": "What is machine learning and how does it differ from traditional programming?",
-    "answer": "Machine learning is a subset of artificial intelligence where systems learn patterns from data to improve performance without being explicitly programmed for each task, unlike traditional programming which follows explicit rules."
+    "question": "When did the Yom Kippur War begin?",
+    "answer": "The war began on 6 October 1973, when the Arab coalition jointly launched a surprise attack against Israel on the Jewish holy day.",
+    "source": "Yom Kippur War"
   },
   {
-    "question": "What was Albert Einstein's most famous equation and what does it represent?",
-    "answer": "Albert Einstein's most famous equation is E=mc², which expresses mass-energy equivalence, stating that energy equals mass multiplied by the square of the speed of light."
+    "question": "How long did the Battle of Okinawa last?",
+    "answer": "The 82-day battle lasted from 1 April until 22 June 1945.",
+    "source": "Battle of Okinawa"
   },
   {
-    "question": "What is the Amazon River and why is it significant?",
-    "answer": "The Amazon River in South America is the largest river by water discharge volume in the world, flowing through Brazil, Peru, and Colombia, and hosting the world's largest tropical rainforest."
+    "question": "In what year did Great Britain declare war on France during the French and Indian War?",
+    "answer": "Great Britain declared war on France in 1756, two years into the French and Indian War.",
+    "source": "French and Indian War"
   },
   {
-    "question": "What is the function of mitochondria in cells?",
-    "answer": "Mitochondria are organelles that generate most of the cell's supply of ATP (adenosine triphosphate), used as a source of chemical energy, hence they are called the powerhouse of the cell."
+    "question": "What is software testing used for besides examining the artifacts and behavior of the software under test?",
+    "answer": "Software testing can also provide an objective, independent view of the software to allow the business to appreciate and understand the risks of software implementation.",
+    "source": "Software testing"
   },
   {
-    "question": "What is the Pythagorean theorem?",
-    "answer": "The Pythagorean theorem states that in a right-angled triangle, the square of the hypotenuse equals the sum of the squares of the other two sides: a² + b² = c²."
+    "question": "When was the Battle of Bosworth Field fought?",
+    "answer": "The battle was fought on Monday 22 August 1485.",
+    "source": "Battle of Bosworth Field"
   },
   {
-    "question": "What caused the French Revolution and when did it begin?",
-    "answer": "The French Revolution began in 1789, caused by financial crisis, social inequality between estates, Enlightenment ideas, food shortages, and the weak leadership of King Louis XVI."
+    "question": "In what year did the Gothic War take place?",
+    "answer": "The Gothic War took place from 376 to 382.",
+    "source": "Battle of Adrianople (disambiguation)"
+  },
+  {
+    "question": "When did the Ethiopian forces defeat the Italian invading force in the Battle of Adwa?",
+    "answer": "The Ethiopian forces defeated the Italian invading force on Sunday 1 March 1896, near the town of Adwa.",
+    "source": "Battle of Adwa"
+  },
+  {
+    "question": "Who designed the MG 34, which originated the general-purpose machine gun?",
+    "answer": "The MG 34 was designed by Heinrich Vollmer of Mauser.",
+    "source": "General-purpose machine gun"
+  },
+  {
+    "question": "Which institute established the General Packet Radio Service?",
+    "answer": "General Packet Radio Service was established by European Telecommunications Standards Institute (ETSI).",
+    "source": "General Packet Radio Service"
+  },
+  {
+    "question": "When was Waring's problem proposed by Edward Waring?",
+    "answer": "Waring's problem was proposed in 1770 by Edward Waring.",
+    "source": "Waring's problem"
+  },
+  {
+    "question": "What type of systems are considered multi-user systems?",
+    "answer": "Time-sharing systems are multi-user systems.",
+    "source": "Multi-user software"
   }
 ]
