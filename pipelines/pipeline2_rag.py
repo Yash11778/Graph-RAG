@@ -15,21 +15,24 @@ def _load():
     global _embedder, _index, _chunks, _client
     if _embedder is None:
         import faiss
-        import numpy as np
-        from sentence_transformers import SentenceTransformer
-        _embedder = SentenceTransformer('all-MiniLM-L6-v2')
+        from fastembed import TextEmbedding
+        _embedder = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
         _index = faiss.read_index(str(_ROOT / 'data/chunks/rag_index.faiss'))
         _chunks = pickle.load(open(str(_ROOT / 'data/chunks/chunks.pkl'), 'rb'))
         _client = setup_groq()
 
 
-def pipeline2(question: str, top_k: int = 5) -> dict:
-    import faiss
+def _embed(text: str):
     import numpy as np
+    emb = list(_embedder.embed([text]))[0]
+    emb = np.array(emb, dtype=np.float32).reshape(1, -1)
+    norm = (emb ** 2).sum(axis=1, keepdims=True) ** 0.5
+    return emb / (norm + 1e-10)
+
+
+def pipeline2(question: str, top_k: int = 5) -> dict:
     _load()
-    emb = _embedder.encode([question], normalize_embeddings=True)
-    emb = np.array(emb, dtype=np.float32)
-    faiss.normalize_L2(emb)
+    emb = _embed(question)
     _, idxs = _index.search(emb, top_k)
 
     retrieved = [_chunks[i] for i in idxs[0] if i < len(_chunks)]

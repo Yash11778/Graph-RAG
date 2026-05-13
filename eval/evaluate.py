@@ -46,7 +46,10 @@ def llm_judge(question: str, ground_truth: str, prediction: str) -> str:
 
 
 def compute_bertscore(predictions: list, references: list) -> dict:
-    from bert_score import score
+    try:
+        from bert_score import score
+    except ImportError:
+        return {'raw_f1': 0.0, 'rescaled_f1': 0.0, 'bonus_hit': False, 'error': 'bert_score not installed'}
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         _, _, F1 = score(predictions, references, lang='en',
