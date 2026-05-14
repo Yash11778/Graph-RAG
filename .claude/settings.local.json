@@ -112,7 +112,8 @@
       "Bash(Test-Path *)",
       "PowerShell(Get-ChildItem \"D:\\\\HACKATHONS\\\\Graph RAG\\\\graphrag-hackathon\\\\graphrag-hackathon\\\\data\" -Recurse -File | Select-Object Name, @{N='MB';E={[math]::Round\\($_.Length/1MB,2\\)}})",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
