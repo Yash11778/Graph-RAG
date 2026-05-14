@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 KEYWORDS = ['war','battle','military','invasion','campaign','general','army','navy','soldier']
 OUTPUT_PATH = "data/raw/dataset.jsonl"
-TOKEN_LIMIT = 2_300_000
+TOKEN_LIMIT = 2_300_000 
 
 os.makedirs("data/raw", exist_ok=True)
 
