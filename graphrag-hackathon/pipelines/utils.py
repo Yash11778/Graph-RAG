@@ -16,7 +16,7 @@ _client: Groq | None = None
 def setup_groq() -> Groq:
     global _client
     if _client is None:
-        api_key = os.getenv('GROQ_API_KEY', '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')
+        api_key = os.getenv('GROQ_API_KEY')
         _client = Groq(api_key=api_key)
     return _client
 
