@@ -9,7 +9,7 @@ OUTPUT_PATH = "data/raw/dataset.jsonl"
 TOKEN_LIMIT = 2_300_000 
 
 os.makedirs("data/raw", exist_ok=True)
-
+    
 enc = tiktoken.get_encoding("cl100k_base")
 
 dataset = load_dataset(
