@@ -1,11 +1,23 @@
+# ── API + pipelines ──────────────────────────────────────────────
 fastapi
 uvicorn[standard]
 pydantic
 python-dotenv
+requests
+numpy
+tiktoken
+
+# ── Pipeline 2 (Basic RAG): FAISS vector search ──────────────────
 faiss-cpu
 fastembed
-tiktoken
-requests
-groq
-numpy
-google-generativeai
+
+# ── LLM: Gemini (new google-genai SDK — `from google import genai`)
+google-genai
+
+# ── Evaluation: LLM-as-a-Judge + BERTScore ───────────────────────
+# bert-score needs torch. For a CPU-only install (no GPU), use the CPU wheel:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch
+bert-score
+pandas
+tqdm

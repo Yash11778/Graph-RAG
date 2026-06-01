@@ -1,31 +1,33 @@
 """
-Step 4 of GraphRAG setup.
-Generates QA pairs grounded in the actual dataset (war/military Wikipedia articles).
-Uses Groq to extract question + ground-truth answer from real article content,
-so all 3 pipelines are evaluated on questions their data actually contains.
+Generate QA pairs grounded in the actual dataset.
+For Round 2: samples from dataset_100m.jsonl, targets 75 pairs.
 
-Saves to data/qa/qa_pairs.json (overwrites existing generic pairs).
+Usage:
+    python scripts/generate_qa_pairs.py
+    python scripts/generate_qa_pairs.py --input data/raw/dataset_100m.jsonl --target 75
 """
+
+import argparse
 import json
 import os
-import pickle
 import random
+import sys
 import time
 from pathlib import Path
 
-from pipelines.utils import setup_groq, groq_generate
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-TARGET_PAIRS = 20
-CHUNKS_PER_PROMPT = 3  # feed 3 chunks per call, ask for 1 Q&A per chunk
-OUTPUT = Path("data/qa/qa_pairs.json")
+from pipelines.utils import setup_gemini, gemini_generate
 
 PROMPT_TEMPLATE = """\
-Read the following text passages and generate one clear factual question and its precise answer FOR EACH passage.
+Read the following Wikipedia passages and generate one clear factual question and its precise answer FOR EACH passage.
 
 Rules:
-- The question must be answerable ONLY from the passage text.
-- The answer must be a complete sentence, not just a word.
-- Questions should cover specific facts: dates, people, events, outcomes, causes.
+- The question must be directly answerable from the passage text.
+- The answer must be a complete sentence with the key fact clearly stated.
+- Prefer questions about well-known facts: who founded X, what year did Y happen, what is Z known for.
+- Avoid questions about very obscure people or events that only appear in one small passage.
+- The answer should be verifiable — a specific name, date, place, or description.
 - Output ONLY valid JSON — no markdown, no explanation.
 
 Format:
@@ -34,38 +36,75 @@ Format:
 Passages:
 {passages}"""
 
+CHUNKS_PER_CALL = 3
 
-def main():
-    os.makedirs("data/qa", exist_ok=True)
-    client = setup_groq()
+WELL_KNOWN_KEYWORDS = [
+    'war', 'battle', 'president', 'prime minister', 'revolution', 'empire', 'kingdom',
+    'science', 'physics', 'chemistry', 'biology', 'mathematics', 'university',
+    'award', 'oscar', 'nobel', 'olympic', 'championship', 'world cup',
+    'founded', 'invention', 'discovery', 'theory', 'philosophy',
+    'film', 'music', 'novel', 'literature', 'art', 'painting',
+    'country', 'city', 'continent', 'ocean', 'mountain', 'river',
+    'ancient', 'medieval', 'century', 'dynasty', 'civilization',
+    'technology', 'computer', 'internet', 'software', 'engineering',
+]
 
-    # Load raw dataset to get full article titles
-    print("Loading dataset...")
-    with open("data/raw/dataset.jsonl", encoding="utf-8") as f:
-        articles = [json.loads(l) for l in f]
 
-    # Sample diverse articles
-    random.seed(42)
-    sampled = random.sample(articles, min(30, len(articles)))
+def main(input_path: str, output_path: str, target: int, seed: int):
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    client = setup_gemini()
+
+    print(f"Loading articles from {input_path}...")
+    articles = []
+    # Seek past leading null bytes (can occur from partial/resumed downloads)
+    start_offset = 0
+    with open(input_path, "rb") as fb:
+        buf = fb.read(1 << 20)
+        while buf:
+            idx = buf.find(b'{')
+            if idx != -1:
+                start_offset += idx
+                break
+            start_offset += len(buf)
+            buf = fb.read(1 << 20)
+    with open(input_path, "rb") as fb:
+        fb.seek(start_offset)
+        for line in fb:
+            line = line.strip()
+            if line:
+                articles.append(json.loads(line.decode("utf-8", errors="replace")))
+    print(f"Loaded {len(articles):,} articles")
+
+    # Prefer well-known topics — filter articles whose title/text contains known keywords
+    random.seed(seed)
+    known = [a for a in articles if any(
+        kw in (a.get('title', '') + ' ' + a.get('text', '')[:300]).lower()
+        for kw in WELL_KNOWN_KEYWORDS
+    )]
+    fallback = [a for a in articles if a not in known]
+    print(f"Well-known articles: {len(known):,} / {len(articles):,}")
+    # Take mostly known articles, small fallback for diversity
+    pool = known + random.sample(fallback, min(len(fallback), target * 2))
+    sample_size = min(target * 5, len(pool))
+    sampled = random.sample(pool, sample_size)
 
     qa_pairs = []
     seen_questions = set()
 
-    for i in range(0, len(sampled), CHUNKS_PER_PROMPT):
-        if len(qa_pairs) >= TARGET_PAIRS:
+    for i in range(0, len(sampled), CHUNKS_PER_CALL):
+        if len(qa_pairs) >= target:
             break
 
-        batch = sampled[i:i + CHUNKS_PER_PROMPT]
+        batch = sampled[i:i + CHUNKS_PER_CALL]
         passages_text = "\n\n---\n\n".join(
-            f"[{a['title']}]\n{a['text'][:800]}"
+            f"[{a['title']}]\n{a['text'][:900]}"
             for a in batch
         )
         prompt = PROMPT_TEMPLATE.format(passages=passages_text)
 
         for attempt in range(4):
             try:
-                raw = groq_generate(client, prompt, max_tokens=600)
-                # strip markdown fences
+                raw = gemini_generate(client, prompt, max_tokens=700)
                 raw = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
                 parsed = json.loads(raw)
                 for item in parsed:
@@ -73,11 +112,15 @@ def main():
                     a = item.get("answer", "").strip()
                     if q and a and q not in seen_questions:
                         seen_questions.add(q)
-                        qa_pairs.append({"question": q, "answer": a, "source": item.get("source", "")})
+                        qa_pairs.append({
+                            "question": q,
+                            "answer": a,
+                            "source": item.get("source", ""),
+                        })
                 break
             except json.JSONDecodeError:
                 if attempt == 3:
-                    print(f"  [warn] JSON parse failed for batch {i//CHUNKS_PER_PROMPT + 1}")
+                    print(f"  [warn] JSON parse failed batch {i // CHUNKS_PER_CALL + 1}")
             except Exception as e:
                 if "429" in str(e) or "rate" in str(e).lower():
                     wait = 35 * (attempt + 1)
@@ -87,14 +130,16 @@ def main():
                     print(f"  [error] {e}")
                     break
 
-        print(f"  Collected {len(qa_pairs)} pairs so far...")
+        if len(qa_pairs) % 10 == 0 and len(qa_pairs) > 0:
+            print(f"  Collected {len(qa_pairs)}/{target} pairs...", flush=True)
+            # Save incrementally so a crash doesn't lose all progress
+            Path(output_path).write_text(json.dumps(qa_pairs[:target], indent=2, ensure_ascii=False), encoding="utf-8")
 
-    qa_pairs = qa_pairs[:TARGET_PAIRS]
-    OUTPUT.write_text(json.dumps(qa_pairs, indent=2, ensure_ascii=False))
-    print(f"\nSaved {len(qa_pairs)} QA pairs to {OUTPUT}")
+    qa_pairs = qa_pairs[:target]
+    Path(output_path).write_text(json.dumps(qa_pairs, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"\nSaved {len(qa_pairs)} QA pairs to {output_path}")
 
-    # Print sample
-    print("\nSample QA pairs:")
+    print("\nSample:")
     for qa in qa_pairs[:3]:
         print(f"  Q: {qa['question']}")
         print(f"  A: {qa['answer'][:100]}")
@@ -102,5 +147,11 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", default="data/raw/dataset_100m.jsonl")
+    parser.add_argument("--output", default="data/qa/qa_pairs.json")
+    parser.add_argument("--target", type=int, default=75)
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args()
     os.chdir(Path(__file__).parent.parent)
-    main()
+    main(args.input, args.output, args.target, args.seed)

@@ -9,6 +9,8 @@ export default defineConfig({
       "/query": "http://localhost:8080",
       "/results": "http://localhost:8080",
       "/health": "http://localhost:8080",
+      "/ready": "http://localhost:8080",
+      "/debug": "http://localhost:8080",
     },
   },
 });

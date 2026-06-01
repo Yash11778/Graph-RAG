@@ -1,107 +1,142 @@
 # How to Run the GraphRAG Hackathon Project
 
-## What's in this project
+## What's in This Project
 
-Three retrieval pipelines compared side-by-side:
+Three retrieval pipelines compared side-by-side on a 100M-token Wikipedia knowledge graph:
 
-| Pipeline | Strategy | Notes |
-|----------|----------|-------|
-| Pipeline 1 — LLM-Only | Raw Groq call, no retrieval | Baseline |
-| Pipeline 2 — Basic RAG | FAISS top-5 → Groq | ~1,400 tokens/query |
-| Pipeline 3 — GraphRAG | FAISS seed + TigerGraph hybrid graph expansion → Groq | ~150–300 tokens/query |
+| Pipeline | Strategy | Avg Tokens/Query |
+|----------|----------|-----------------|
+| Pipeline 1 — LLM-Only | Raw Gemini call, no retrieval | ~103 |
+| Pipeline 2 — Basic RAG | FAISS top-5 → Gemini | ~1,266 |
+| Pipeline 3 — GraphRAG | FAISS seed + TigerGraph hybrid multi-hop → Gemini | ~297 |
 
-A React dashboard (port 5173) lets you query all three at once and see token/accuracy comparisons.
+A React dashboard (port 5173) queries all three simultaneously and shows token counts, latency, cost, and accuracy comparisons.
 
 ---
 
 ## Prerequisites
 
-- Python 3.10+
-- Docker Desktop (running)
-- Node.js 18+ (for frontend)
-- A `.env` file in `graphrag-hackathon/` with at least:
-  ```
-  GROQ_API_KEY=gsk_...
-  ```
+| Tool | Version | Why |
+|------|---------|-----|
+| Python | 3.10+ | API server + scripts |
+| Node.js | 18+ | React frontend |
+| Docker Desktop | any | TigerGraph GraphRAG service (Option B only) |
+| Gemini API key | — | All 3 pipelines use Gemini Flash |
 
 ---
 
-## One-time data setup (only needed once)
+## Step 0 — Environment Setup
 
-Run these from `graphrag-hackathon/`:
+Create `.env` in `graphrag-hackathon/` (copy from `.env.example`):
+
+```env
+GEMINI_API_KEY=AIza...           # required
+GROQ_API_KEY=gsk_...             # optional (not used in current pipelines)
+TG_HOST=https://...tgcloud.io    # required for Option B (TigerGraph)
+TG_USERNAME=your@email.com
+TG_PASSWORD=your_tg_password
+TG_GRAPH=MyDatabase
+GRAPHRAG_URL=http://localhost:8000
+```
+
+Install Python dependencies from `graphrag-hackathon/`:
 
 ```bash
 pip install -r api/requirements.txt
-
-python scripts/download_dataset.py      # downloads Wikipedia articles → data/raw/
-python scripts/preprocess.py            # chunks articles → data/chunks/chunks.pkl
-python scripts/build_faiss.py           # builds FAISS index → data/chunks/rag_index.faiss
-python scripts/generate_qa_pairs.py     # creates data/qa/qa_pairs.json
 ```
-
-If `data/chunks/chunks.pkl` and `data/chunks/rag_index.faiss` already exist, skip those steps.
 
 ---
 
-## Running the project
+## Step 1 — One-Time Data Setup
 
-### Option A — Without TigerGraph (Pipeline 3 falls back to FAISS-only)
+Run these from `graphrag-hackathon/`. Skip any step if the output files already exist.
 
-This is the current working state. Pipeline 3 will still return answers using FAISS context but skips the graph expansion step.
+```bash
+# Download 100,850 Wikipedia articles → data/raw/dataset.jsonl
+python scripts/download_dataset.py
 
-**Terminal 1 — API server** (from `graphrag-hackathon/`)
+# Chunk articles → data/chunks/chunks.pkl  (464,739 chunks)
+python scripts/preprocess.py
+
+# Build FAISS index → data/chunks/rag_index.faiss
+python scripts/build_faiss.py
+
+# Generate QA evaluation pairs → data/qa/qa_pairs.json
+python scripts/generate_qa_pairs.py
+```
+
+**Check if you can skip:** If `data/chunks/chunks.pkl` and `data/chunks/rag_index.faiss` both exist, skip preprocess and build_faiss.
+
+---
+
+## Option A — Without TigerGraph (FAISS-only, fastest to start)
+
+Pipeline 3 falls back gracefully to FAISS-only context when TigerGraph is not running. All three pipelines still produce answers.
+
+**Terminal 1 — API server** (from `graphrag-hackathon/`):
 ```bash
 uvicorn api.app:app --reload --port 8080
 ```
 
-**Terminal 2 — Frontend** (from `graphrag-hackathon/frontend/`)
+**Terminal 2 — Frontend** (from `graphrag-hackathon/frontend/`):
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Open **http://localhost:5173** — the dashboard is live.
 
 ---
 
-### Option B — With TigerGraph GraphRAG (full Pipeline 3)
+## Option B — With TigerGraph GraphRAG (full graph expansion)
 
-#### Step 1 — Start the Docker stack
+This activates Pipeline 3's multi-hop graph traversal via TigerGraph Savanna.
+
+### Step B1 — Start the Docker stack
 
 From `graphrag-hackathon/graphrag/`:
 ```bash
 docker compose up -d graphrag graphrag-ecc chat-history
 ```
 
-Wait ~30 seconds for services to be healthy. The GraphRAG service listens on **port 8003**.
+Wait ~30 seconds. The GraphRAG service listens on **port 8003**.
 
-Verify it's up:
+Verify it's running:
 ```bash
 curl http://localhost:8003/
 ```
 
-#### Step 2 — Initialize the schema (only once after fresh Docker start)
+### Step B2 — Initialize the schema (once per fresh database)
 
 From `graphrag-hackathon/`:
 ```bash
 python scripts/init_graphrag_service.py
 ```
 
-#### Step 3 — Ingest data (only once, or after wiping the database)
+This creates the GraphRAG schema (`DocumentChunk`, `Community`, `Concept`, `Relationship` vertices/edges) on your TigerGraph instance.
+
+### Step B3 — Ingest data (once, or after wiping the database)
 
 ```bash
 python scripts/ingest_via_graphrag.py
 ```
 
-This pushes Wikipedia articles through the GraphRAG service (chunking + embedding + entity extraction). Takes 30–60 minutes for the full dataset.
+This pushes Wikipedia articles through the GraphRAG service:
+- Chunking (semantic chunker)
+- Gemini embedding generation
+- LLM entity/relationship extraction
+- Community detection (Louvain algorithm)
 
-To re-ingest only articles that failed previously:
+Takes **30–60 minutes** for the full dataset.
+
+To retry only articles that failed:
 ```bash
 python scripts/reingest_failed.py
 ```
 
-#### Step 4 — Start API + frontend (same as Option A)
+### Step B4 — Start API + Frontend
 
+Same as Option A:
 ```bash
 # Terminal 1 — from graphrag-hackathon/
 uvicorn api.app:app --reload --port 8080
@@ -112,77 +147,173 @@ npm run dev
 
 ---
 
-## Running the evaluation
+## Running the Evaluation
 
 From `graphrag-hackathon/`:
 ```bash
 python eval/evaluate.py
 ```
 
-Runs all 20 QA pairs through all three pipelines, judges each answer (PASS/FAIL), computes BERTScore, and writes results to `eval/results/eval_results.csv`.
+Runs all QA pairs through all three pipelines, judges each answer (PASS/FAIL), computes BERTScore, and writes results to `eval/results/eval_results.csv`.
 
 ---
 
-## Why you see `TG retrieval error` during evaluation
+## Deployment with Docker
 
+Build and run the API as a container:
+
+```bash
+# Build
+docker build -t graphrag-hackathon .
+
+# Run (set your API keys as env vars)
+docker run -p 8080:8080 \
+  -e GEMINI_API_KEY=AIza... \
+  -v $(pwd)/data:/app/data \
+  graphrag-hackathon
 ```
-TG retrieval error: HTTPConnectionPool(host='localhost', port=8003):
-  Max retries exceeded ... No connection could be made because the
-  target machine actively refused it
+
+The Dockerfile pre-caches the fastembed ONNX model so the first request is fast.
+
+For the frontend, build a static bundle and serve it behind a CDN or Vercel:
+```bash
+cd frontend
+npm run build   # outputs to frontend/dist/
 ```
 
-**Cause:** The TigerGraph GraphRAG Docker service (port 8003) is not running.
-
-**Effect:** Pipeline 3 falls back gracefully to FAISS-only context and still produces answers. The `[graphrag] judge=PASS` lines you see are real — answers come from FAISS retrieval without graph expansion.
-
-**Fix:** Start the Docker stack as in Option B, Step 1.
-
----
-
-## Project structure
-
-```
-graphrag-hackathon/
-├── api/
-│   ├── app.py                  # FastAPI — POST /compare
-│   └── requirements.txt
-├── data/
-│   ├── raw/                    # downloaded Wikipedia articles
-│   ├── chunks/                 # FAISS index + pickled chunks
-│   └── qa/qa_pairs.json        # 20 QA pairs for evaluation
-├── eval/
-│   ├── evaluate.py             # full evaluation script
-│   └── results/eval_results.csv
-├── frontend/                   # React + Recharts dashboard
-├── graphrag/                   # TigerGraph GraphRAG repo (Docker)
-│   ├── docker-compose.yml
-│   └── configs/server_config.json
-├── pipelines/
-│   ├── pipeline1_llm.py        # LLM-only
-│   ├── pipeline2_rag.py        # FAISS RAG
-│   ├── pipeline3_graphrag.py   # FAISS seed + TigerGraph hybrid
-│   └── utils.py                # Groq client, token counting
-└── scripts/
-    ├── download_dataset.py
-    ├── preprocess.py
-    ├── build_faiss.py
-    ├── generate_qa_pairs.py
-    ├── init_graphrag_service.py
-    └── ingest_via_graphrag.py
+Set `VITE_API_BASE` to your deployed API URL when building for production:
+```bash
+VITE_API_BASE=https://your-api.example.com npm run build
 ```
 
 ---
 
-## API
+## Troubleshooting
 
-```
-POST http://localhost:8080/compare
-Content-Type: application/json
+### `TG retrieval error: ... No connection could be made`
 
+TigerGraph GraphRAG Docker service is not running.
+
+**Effect:** Pipeline 3 falls back to FAISS-only context — answers still work.  
+**Fix:** Start the Docker stack as in Option B, Step B1.
+
+### `pipeline2 load failed: ...`
+
+FAISS index or chunks file is missing.
+
+**Fix:** Run `python scripts/build_faiss.py` (and `python scripts/preprocess.py` first if `chunks.pkl` is also missing).
+
+### `GEMINI_API_KEY not set` / `AuthenticationError`
+
+**Fix:** Make sure `.env` exists in `graphrag-hackathon/` with a valid `GEMINI_API_KEY`.
+
+### Frontend shows `Request failed` / network error
+
+API server is not running or is on a different port.
+
+**Fix:** Confirm `uvicorn api.app:app --reload --port 8080` is running. The Vite dev server proxies `/compare` to `localhost:8080` (see `frontend/vite.config.js`).
+
+### First request takes 60+ seconds
+
+fastembed is downloading the ONNX model on first use.
+
+**Fix:** Wait for it once — subsequent requests are fast. In Docker, the model is baked into the image (see Dockerfile).
+
+---
+
+## API Reference
+
+### `POST /compare`
+
+Runs all three pipelines in sequence and returns a full comparison.
+
+**Request body:**
+```json
 {
   "question": "Who invented the telephone?",
   "ground_truth": "Alexander Graham Bell"
 }
 ```
+`ground_truth` is optional. Omit it to skip LLM judge and BERTScore.
 
-`ground_truth` is optional — include it to get LLM judge verdicts and BERTScore in the response.
+**Response:**
+```json
+{
+  "llm_only": {
+    "pipeline": "llm_only",
+    "answer": "Alexander Graham Bell invented the telephone in 1876.",
+    "prompt_tokens": 68,
+    "completion_tokens": 35,
+    "total_tokens": 103,
+    "latency_s": 0.78,
+    "cost_usd": 0.000008
+  },
+  "basic_rag": {
+    "pipeline": "basic_rag",
+    "answer": "...",
+    "total_tokens": 1243,
+    "latency_s": 13.1,
+    "cost_usd": 0.000093,
+    "sources": ["Bell telephone article", "..."]
+  },
+  "graphrag": {
+    "pipeline": "graphrag",
+    "answer": "...",
+    "total_tokens": 312,
+    "latency_s": 5.2,
+    "cost_usd": 0.000023,
+    "retriever": "faiss+tigergraph_hybrid",
+    "context_tokens": 287,
+    "sources": ["Bell article"]
+  },
+  "token_reduction_pct": 74.9,
+  "cost_reduction_pct": 74.9,
+  "judge_llm_only":  "FAIL",
+  "judge_basic_rag": "PASS",
+  "judge_graphrag":  "PASS",
+  "bertscore": {
+    "raw_f1": 0.912,
+    "rescaled_f1": 0.824,
+    "bonus_hit": true
+  }
+}
+```
+
+### `GET /health`
+Returns `{"status": "ok"}`.
+
+### `GET /debug`
+Returns `{"embedder_loaded": true, "faiss_loaded": true}` — useful for diagnosing startup issues.
+
+---
+
+## Key Files Reference
+
+| File | Purpose |
+|------|---------|
+| `api/app.py` | FastAPI server, `/compare` endpoint, LLM judge, BERTScore |
+| `api/requirements.txt` | Python dependencies |
+| `pipelines/pipeline1_llm.py` | LLM-only baseline |
+| `pipelines/pipeline2_rag.py` | FAISS RAG (top_k=5) |
+| `pipelines/pipeline3_graphrag.py` | FAISS seed + TigerGraph hybrid |
+| `pipelines/utils.py` | Gemini client, token counter, cost helper |
+| `frontend/src/App.jsx` | Full React dashboard (single file) |
+| `frontend/vite.config.js` | Proxies `/compare` → API |
+| `graphrag/configs/server_config.json` | TigerGraph + Gemini config for Docker service |
+| `.env` | API keys and TigerGraph credentials |
+| `scripts/ingest_via_graphrag.py` | Ingests articles into TigerGraph |
+| `scripts/count_tokens_gemini.py` | Audits total token usage via Gemini API |
+| `eval/evaluate.py` | Full evaluation suite |
+
+---
+
+## Token & Cost Summary
+
+Model: **Gemini 1.5 Flash** ($0.075/1M input · $0.30/1M output)
+
+| Operation | Tokens | Approx Cost |
+|-----------|--------|-------------|
+| Full ingestion (100K articles) | ~75M | ~$0.01 |
+| Per question (all 3 pipelines) | ~1,700 | ~$0.001 |
+| 1,000 questions | ~1.7M | ~$0.13 |
+| $40 budget | — | ~30,000–40,000 questions |
