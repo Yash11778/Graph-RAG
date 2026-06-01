@@ -10,8 +10,13 @@ data/raw/
 data/faiss/
 eval/results/
 
-# data/chunks — commit only the runtime artefacts needed for the API
-data/chunks/chunks.jsonl
+# data/chunks — large binary files (FAISS index + chunks pickle) exceed GitHub's 100 MB
+# limit. Keep them locally or regenerate with scripts/build_faiss.py. Only commit the
+# small JSON progress/status files.
+data/chunks/*.faiss
+data/chunks/*.faiss.ckpt
+data/chunks/*.faiss.progress.json
+data/chunks/*.pkl
 data/ingest_progress.json
 data/chunks/failed_ingestion.json
 

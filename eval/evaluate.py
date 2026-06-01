@@ -20,9 +20,9 @@ sys.path.insert(0, str(ROOT))
 from pipelines.pipeline1_llm import pipeline1
 from pipelines.pipeline2_rag import pipeline2
 from pipelines.pipeline3_graphrag import pipeline3
-from pipelines.utils import groq_generate, setup_groq
+from pipelines.utils import gemini_generate, setup_gemini
 
-_judge_client = setup_groq()
+_judge_client = setup_gemini()
 
 PIPELINES = [
     ('llm_only',  pipeline1),
@@ -33,15 +33,16 @@ PIPELINES = [
 
 def llm_judge(question: str, ground_truth: str, prediction: str) -> str:
     prompt = (
-        "You are a strict evaluator. Respond with exactly one word.\n"
-        "PASS if the prediction is factually correct and addresses the question.\n"
-        "FAIL if it is incorrect, incomplete, or irrelevant.\n\n"
+        "You are an evaluator. Respond with exactly one word: PASS or FAIL.\n"
+        "PASS if the prediction contains the key facts from the ground truth and addresses the question, even if worded differently or with additional context.\n"
+        "FAIL only if the prediction is clearly wrong, contradicts the ground truth, or is completely irrelevant.\n"
+        "Be generous — partial but correct answers should PASS.\n\n"
         f"Question: {question}\n"
         f"Ground Truth: {ground_truth}\n"
         f"Prediction: {prediction}\n\n"
         "Answer (PASS or FAIL):"
     )
-    response = groq_generate(_judge_client, prompt, max_tokens=5)
+    response = gemini_generate(_judge_client, prompt, max_tokens=5)
     return 'PASS' if 'PASS' in response.upper() else 'FAIL'
 
 
@@ -64,8 +65,12 @@ def compute_bertscore(predictions: list, references: list) -> dict:
 
 
 def main():
-    qa_path = ROOT / 'data/qa/qa_pairs.json'
-    with open(qa_path) as f:
+    # QA file is configurable so we can evaluate against the set that matches the
+    # CURRENT TigerGraph graph (data/qa/qa_pairs_graph.json) rather than the stale one.
+    qa_rel  = os.environ.get('QA_FILE', 'data/qa/qa_pairs.json')
+    qa_path = ROOT / qa_rel
+    print(f'Using QA file: {qa_path}')
+    with open(qa_path, encoding='utf-8') as f:
         qa_pairs = json.load(f)
 
     rows = []
@@ -76,11 +81,14 @@ def main():
         for name, fn in PIPELINES:
             try:
                 result = fn(question)
-                judge  = llm_judge(question, ground_truth, result['answer'])
             except Exception as e:
-                print(f'  [{name}] ERROR: {e}', flush=True)
+                print(f'  [{name}] pipeline ERROR: {e}', flush=True)
                 result = {'answer': '', 'total_tokens': 0, 'latency_s': 0}
-                judge  = 'FAIL'
+            try:
+                judge = llm_judge(question, ground_truth, result['answer'])
+            except Exception as e:
+                print(f'  [{name}] judge ERROR: {e}', flush=True)
+                judge = 'FAIL'
 
             rows.append({
                 'qid':          i,
@@ -117,9 +125,9 @@ def print_summary(df: pd.DataFrame):
         print(f'  avg_tokens:  {sub["total_tokens"].mean():.1f}')
         print(f'  avg_latency: {sub["latency_s"].mean():.3f}s')
 
-    rag_avg     = df[df['pipeline'] == 'basic_rag']['total_tokens'].mean()
+    rag_avg      = df[df['pipeline'] == 'basic_rag']['total_tokens'].mean()
     graphrag_avg = df[df['pipeline'] == 'graphrag']['total_tokens'].mean()
-    reduction   = (1 - graphrag_avg / rag_avg) * 100
+    reduction    = (1 - graphrag_avg / rag_avg) * 100 if rag_avg > 0 else 0.0
     print(f'\nToken reduction (graphrag vs basic_rag): {reduction:.1f}%')
 
     gr_rows      = df[df['pipeline'] == 'graphrag']

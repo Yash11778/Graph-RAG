@@ -1,0 +1,152 @@
+[
+  {
+    "question": "What freedoms does free software give users?",
+    "answer": "Free software gives users the freedom to run, copy, distribute, study, change, and improve the software.",
+    "source": "free-software"
+  },
+  {
+    "question": "What is free software?",
+    "answer": "Free software is software that gives users the freedom to run, copy, distribute, study, change, and improve it.",
+    "source": "free-software"
+  },
+  {
+    "question": "What is software?",
+    "answer": "Software is a set of programs that runs on hardware, contrasted with the physical hardware of a computer.",
+    "source": "software"
+  },
+  {
+    "question": "What was Napoleon Bonaparte known for?",
+    "answer": "Napoleon Bonaparte was a French military and political leader.",
+    "source": "napoleon-bonaparte"
+  },
+  {
+    "question": "Who was Napoleon Bonaparte and what was his role in the Egypt expedition?",
+    "answer": "Napoleon Bonaparte was a French military and political leader who led the French expedition in Egypt.",
+    "source": "napoleon-bonaparte"
+  },
+  {
+    "question": "What was the Roman Empire?",
+    "answer": "The Roman Empire was an ancient state that controlled vast territories across Europe and the Mediterranean, ruled by emperors such as Augustus.",
+    "source": "roman-empire"
+  },
+  {
+    "question": "Who was Nelson Mandela?",
+    "answer": "Nelson Mandela was a South African anti-apartheid revolutionary and political leader.",
+    "source": "nelson-mandela"
+  },
+  {
+    "question": "What was World War II and when did it take place?",
+    "answer": "World War II was a global conflict between the Axis and Allied powers that lasted from 1939 to 1945.",
+    "source": "world-war-ii"
+  },
+  {
+    "question": "What were the Axis powers in World War II?",
+    "answer": "The Axis powers were the primary military alliance opposing the Allies in World War II, led by Germany under Adolf Hitler.",
+    "source": "world-war-ii"
+  },
+  {
+    "question": "What was the Cold War?",
+    "answer": "The Cold War was a period of geopolitical tension between the Soviet Union and the United States.",
+    "source": "cold-war"
+  },
+  {
+    "question": "Who fought in the Cold War?",
+    "answer": "The Cold War was fought between the Soviet Union and the United States.",
+    "source": "cold-war"
+  },
+  {
+    "question": "What was World War I?",
+    "answer": "World War I was a global conflict that took place from 1914 to 1918 between the Allied and Central powers.",
+    "source": "world-war-i"
+  },
+  {
+    "question": "What was the Soviet Union?",
+    "answer": "The Soviet Union was a socialist federal state in Eurasia that existed from 1922 to 1991.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "Who was Adolf Hitler?",
+    "answer": "Adolf Hitler was the dictator of Nazi Germany who led the Axis powers during World War II.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "Who was Winston Churchill?",
+    "answer": "Winston Churchill was the British Prime Minister who led the United Kingdom during World War II.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What was the Korean War?",
+    "answer": "The Korean War was a conflict between North Korea and South Korea from 1950 to 1953.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What is the United Nations?",
+    "answer": "The United Nations is an international organization founded in 1945 to promote international peace and cooperation.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What is NATO?",
+    "answer": "NATO is the North Atlantic Treaty Organization, a military alliance of North American and European countries.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What role did Germany play in World War II?",
+    "answer": "Germany, led by Adolf Hitler, was the principal Axis power in World War II.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What role did Japan play in World War II?",
+    "answer": "Japan was one of the Axis powers in World War II.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What was the Manhattan Project?",
+    "answer": "The Manhattan Project was the US research effort during World War II that developed the first atomic bombs.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What was the Vietnam War?",
+    "answer": "The Vietnam War was a conflict in Vietnam involving North and South Vietnam and the United States.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "Who was Augustus?",
+    "answer": "Augustus was the first emperor of the Roman Empire.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What is penicillin?",
+    "answer": "Penicillin is a group of antibiotics used to treat bacterial infections.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What role did the United States play in World War II?",
+    "answer": "The United States was one of the Allied powers in World War II.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What role did France play in World War II?",
+    "answer": "France was invaded and occupied by Germany during World War II and was one of the Allied powers.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What did the Manhattan Project develop?",
+    "answer": "The Manhattan Project developed the first atomic bombs.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "Who was the first emperor of the Roman Empire?",
+    "answer": "Augustus was the first emperor of the Roman Empire.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "What were the two opposing alliances in World War II?",
+    "answer": "The two opposing alliances in World War II were the Axis powers and the Allied powers.",
+    "source": "tigergraph-entity"
+  },
+  {
+    "question": "Which countries were the main rivals during the Cold War?",
+    "answer": "The main rivals during the Cold War were the United States and the Soviet Union.",
+    "source": "tigergraph-entity"
+  }
+]
