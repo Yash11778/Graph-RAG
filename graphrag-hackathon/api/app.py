@@ -130,13 +130,15 @@ def compare(req: QueryRequest):
 
     p1, p2, p3 = results['llm_only'], results['basic_rag'], results['graphrag']
 
+    basic_rag_ok = p2.get('status') != 'faiss_unavailable'
+
     # GraphRAG only counts as a genuine result when it actually retrieved graph context
     # and produced an answer from it. A retrieval miss returns a ~9-token sentinel — counting
     # that as a "reduction" would fabricate a 99%+ win, so we report it honestly instead.
     graphrag_ok = bool(p3.get('graph_context_found')) and p3.get('context_tokens', 0) > 0
     graphrag_status = p3.get('status', 'ok' if graphrag_ok else 'no_context')
 
-    if graphrag_ok:
+    if graphrag_ok and basic_rag_ok:
         # Token reduction: GraphRAG vs Basic RAG
         token_reduction = round(
             (1 - p3['total_tokens'] / max(p2['total_tokens'], 1)) * 100, 1
@@ -146,7 +148,7 @@ def compare(req: QueryRequest):
             (1 - p3['cost_usd'] / max(p2['cost_usd'], 1e-9)) * 100, 1
         )
     else:
-        # No graph context → no genuine comparison to report.
+        # No graph context, or FAISS unavailable → no genuine comparison to report.
         token_reduction = None
         cost_reduction = None
 

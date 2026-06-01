@@ -11,9 +11,21 @@ _chunks   = None
 _client   = None
 
 
+_load_error: str = ""   # set once if FAISS files are missing; cleared on success
+
+
 def _load():
-    global _embedder, _index, _chunks, _client
+    global _embedder, _index, _chunks, _client, _load_error
     if _embedder is not None and _index is not None and _chunks is not None:
+        return
+    faiss_path  = _ROOT / 'data/chunks/rag_index.faiss'
+    chunks_path = _ROOT / 'data/chunks/chunks.pkl'
+    if not faiss_path.exists() or not chunks_path.exists():
+        _load_error = (
+            "FAISS index not found on this server. "
+            "Run scripts/build_faiss.py locally to regenerate data/chunks/rag_index.faiss "
+            "and data/chunks/chunks.pkl, then upload them to the server."
+        )
         return
     try:
         import faiss
@@ -21,13 +33,14 @@ def _load():
         _embedder = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
         # Memory-map the index instead of loading all 681 MB into RAM — keeps the
         # footprint small enough to run alongside the embedder + BERTScore on modest machines.
-        _index    = faiss.read_index(str(_ROOT / 'data/chunks/rag_index.faiss'), faiss.IO_FLAG_MMAP)
-        with open(str(_ROOT / 'data/chunks/chunks.pkl'), 'rb') as f:
+        _index    = faiss.read_index(str(faiss_path), faiss.IO_FLAG_MMAP)
+        with open(str(chunks_path), 'rb') as f:
             _chunks = pickle.load(f)
-        _client = setup_gemini()
+        _client   = setup_gemini()
+        _load_error = ""
     except Exception as e:
         _embedder = _index = _chunks = _client = None
-        raise RuntimeError(f"pipeline2 load failed: {e}") from e
+        _load_error = str(e)
 
 
 def _embed(text: str):
@@ -40,6 +53,13 @@ def _embed(text: str):
 
 def pipeline2(question: str, top_k: int = 8) -> dict:
     _load()
+    if _load_error:
+        import time
+        answer  = f"Basic RAG unavailable: {_load_error}"
+        result  = make_result('basic_rag', answer, 0, count_tokens(answer), 0.0)
+        result['sources'] = []
+        result['status']  = 'faiss_unavailable'
+        return result
     emb = _embed(question)
     _, idxs = _index.search(emb, top_k)
 
