@@ -1,18 +1,18 @@
-"""
+﻿"""
 Add Entity vertex and HAS_ENTITY edge to TigerGraph MyDatabase.
-Run once — safe to re-run (TigerGraph ignores duplicate definitions).
+Run once â€” safe to re-run (TigerGraph ignores duplicate definitions).
 """
 import sys
 import requests
 
 TG_HOST = 'https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io'
-TG_TOKEN = 'YOUR_TG_JWT_TOKEN_HERE'
+TG_TOKEN = os.getenv('TG_PASSWORD', '')
 HEADERS = {'Authorization': f'Bearer {TG_TOKEN}', 'Content-Type': 'text/plain'}
 
 # Entity: stores a single extracted fact about a named entity.
 # HAS_ENTITY: directed edge from Chunk to Entity (chunk contains this entity fact).
 # ENTITY_COREF: undirected edge linking Entity vertices that refer to the same real-world entity
-#               across different chunks — enables cross-document reasoning.
+#               across different chunks â€” enables cross-document reasoning.
 GSQL = """
 USE GRAPH MyDatabase
 CREATE VERTEX Entity (
@@ -46,3 +46,4 @@ def run():
 
 if __name__ == '__main__':
     run()
+

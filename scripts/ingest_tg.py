@@ -1,4 +1,4 @@
-import pickle
+﻿import pickle
 import sys
 from collections import defaultdict
 
@@ -6,7 +6,7 @@ import requests
 from tqdm import tqdm
 
 TG_HOST = 'https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io'
-TG_TOKEN = 'YOUR_TG_JWT_TOKEN_HERE'
+TG_TOKEN = os.getenv('TG_PASSWORD', '')
 TG_GRAPH = 'MyDatabase'
 HEADERS = {'Authorization': f'Bearer {TG_TOKEN}', 'Content-Type': 'application/json'}
 UPSERT_URL = f'{TG_HOST}/restpp/graph/{TG_GRAPH}'
@@ -94,9 +94,10 @@ def main():
 
     print(f'\nDone. ingested={total_ok}  failed={total_fail}')
     if total_fail > 0:
-        print('WARNING: some batches failed — re-run to retry')
+        print('WARNING: some batches failed â€” re-run to retry')
         sys.exit(1)
 
 
 if __name__ == '__main__':
     main()
+

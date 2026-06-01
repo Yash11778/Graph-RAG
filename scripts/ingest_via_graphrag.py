@@ -1,4 +1,4 @@
-"""
+﻿"""
 Step 3 of GraphRAG setup.
 Ingests Wikipedia articles into TigerGraph using the GraphRAG schema,
 then triggers ECC (Eventual Consistency Checker) to:
@@ -28,13 +28,13 @@ import requests
 from tqdm import tqdm
 
 TG_HOST    = "https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io"
-TG_TOKEN   = "YOUR_TG_JWT_TOKEN_HERE"
+TG_TOKEN   = os.getenv("TG_PASSWORD", "")
 TG_GRAPH   = "MyDatabase"
 TG_HEADERS = {"Authorization": f"Bearer {TG_TOKEN}"}
 UPSERT_URL = f"{TG_HOST}/restpp/graph/{TG_GRAPH}"
 
 GRAPHRAG_SERVICE = "http://localhost:8003"
-GRAPHRAG_AUTH    = ("yashdharme6@gmail.com", "YOUR_TG_SECRET_HERE")
+GRAPHRAG_AUTH    = ("yashdharme6@gmail.com", os.getenv("TG_PASSWORD", ""))
 
 INPUT_FILE  = Path("data/raw/dataset.jsonl")
 BATCH_SIZE  = 50
@@ -154,3 +154,4 @@ if __name__ == "__main__":
     import os
     os.chdir(Path(__file__).parent.parent)
     main()
+

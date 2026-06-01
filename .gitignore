@@ -17,6 +17,7 @@ data/chunks/*.faiss
 data/chunks/*.faiss.ckpt
 data/chunks/*.faiss.progress.json
 data/chunks/*.pkl
+data/chunks/*.jsonl
 data/ingest_progress.json
 data/chunks/failed_ingestion.json
 

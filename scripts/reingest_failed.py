@@ -1,4 +1,4 @@
-"""
+﻿"""
 Re-ingest only the articles whose Content vertices had empty text in TigerGraph.
 Uploads one article at a time (not batched) to avoid payload size limits.
 Then triggers ECC forceupdate to re-embed all pending content.
@@ -11,13 +11,13 @@ import requests
 from tqdm import tqdm
 
 TG_HOST    = "https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io"
-TG_TOKEN   = "YOUR_TG_JWT_TOKEN_HERE"
+TG_TOKEN   = os.getenv("TG_PASSWORD", "")
 TG_GRAPH   = "MyDatabase"
 TG_HEADERS = {"Authorization": f"Bearer {TG_TOKEN}"}
 UPSERT_URL = f"{TG_HOST}/restpp/graph/{TG_GRAPH}"
 
 GRAPHRAG_SERVICE = "http://localhost:8003"
-GRAPHRAG_AUTH    = ("yashdharme6@gmail.com", "YOUR_TG_SECRET_HERE")
+GRAPHRAG_AUTH    = ("yashdharme6@gmail.com", os.getenv("TG_PASSWORD", ""))
 
 # IDs extracted from ECC error logs
 FAILED_IDS_FILE = Path("data/failed_content_ids.txt")
@@ -145,3 +145,4 @@ if __name__ == "__main__":
     import os
     os.chdir(Path(__file__).parent.parent)
     main()
+
