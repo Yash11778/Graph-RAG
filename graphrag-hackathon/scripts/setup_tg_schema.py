@@ -1,11 +1,11 @@
-import sys
+﻿import sys
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
 TG_HOST = 'https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io'
-TG_TOKEN = 'YOUR_TG_JWT_TOKEN_HERE'
+TG_TOKEN = os.getenv('TG_PASSWORD', '')
 HEADERS = {'Authorization': f'Bearer {TG_TOKEN}', 'Content-Type': 'text/plain'}
 
 GSQL = """
@@ -37,3 +37,4 @@ def run():
 
 if __name__ == '__main__':
     run()
+

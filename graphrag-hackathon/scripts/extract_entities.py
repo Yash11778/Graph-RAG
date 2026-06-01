@@ -1,4 +1,4 @@
-"""
+﻿"""
 Extract named-entity facts from every Chunk and store them in TigerGraph.
 
 Graph structure built here:
@@ -7,7 +7,7 @@ Graph structure built here:
                          Entity <--ENTITY_COREF-->Entity  (same real-world entity, different chunks)
 
 This is the core of true GraphRAG: entities act as cross-document connective tissue.
-At query time, Pipeline 3 traverses Chunk → Entity and returns compact facts (~15 tokens each)
+At query time, Pipeline 3 traverses Chunk â†’ Entity and returns compact facts (~15 tokens each)
 instead of raw chunk text (~256 tokens), achieving genuine ~85% token reduction.
 
 Progress is saved to data/entity_progress.json so the script is safely resumable.
@@ -26,14 +26,14 @@ from tqdm import tqdm
 
 from pipelines.utils import setup_groq
 
-# ── TigerGraph config ────────────────────────────────────────────────────────
+# â”€â”€ TigerGraph config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 TG_HOST  = 'https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io'
-TG_TOKEN = 'YOUR_TG_JWT_TOKEN_HERE'
+TG_TOKEN = os.getenv('TG_PASSWORD', '')
 TG_GRAPH = 'MyDatabase'
 TG_HEADERS = {'Authorization': f'Bearer {TG_TOKEN}', 'Content-Type': 'application/json'}
 UPSERT_URL = f'{TG_HOST}/restpp/graph/{TG_GRAPH}'
 
-# ── Extraction config ─────────────────────────────────────────────────────────
+# â”€â”€ Extraction config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CHUNKS_PER_BATCH  = 5    # chunks per Groq call
 FACTS_PER_CHUNK   = 3    # entity facts to extract per chunk
 TG_BATCH_SIZE     = 200  # vertices+edges per TigerGraph upsert
@@ -46,7 +46,7 @@ Rules:
 - Each fact must name a specific entity (person, place, event, concept, organization).
 - Each fact must be a single sentence, max 20 words.
 - Facts must be self-contained (reader needs no other context to understand them).
-- Output ONLY valid JSON — no markdown, no explanation.
+- Output ONLY valid JSON â€” no markdown, no explanation.
 
 Output format:
 {{"results": [{{"chunk_id": "<id>", "facts": [{{"name": "<entity>", "fact": "<sentence>"}}]}}]}}
@@ -55,7 +55,7 @@ Chunks:
 {chunks}"""
 
 
-# ── Groq extraction ───────────────────────────────────────────────────────────
+# â”€â”€ Groq extraction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def extract_batch(client, batch: list[dict]) -> dict[str, list[dict]]:
     """Call Groq for a batch of chunks. Returns {chunk_id: [{name, fact}, ...]}."""
@@ -84,7 +84,7 @@ def extract_batch(client, batch: list[dict]) -> dict[str, list[dict]]:
                 result[cid] = item.get('facts', [])
             return result
         except json.JSONDecodeError:
-            # LLM returned malformed JSON — skip batch gracefully
+            # LLM returned malformed JSON â€” skip batch gracefully
             print(f'  [warn] JSON parse failed on attempt {attempt + 1}')
             if attempt == 4:
                 return {}
@@ -99,7 +99,7 @@ def extract_batch(client, batch: list[dict]) -> dict[str, list[dict]]:
     return {}
 
 
-# ── TigerGraph upsert ─────────────────────────────────────────────────────────
+# â”€â”€ TigerGraph upsert â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def upsert_tg(payload: dict) -> bool:
     for attempt in range(3):
@@ -130,13 +130,13 @@ def flush_to_tg(entity_vertices: dict, has_entity_edges: dict, coref_edges: list
     return upsert_tg(payload)
 
 
-# ── Co-reference linking ───────────────────────────────────────────────────────
+# â”€â”€ Co-reference linking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def normalize_name(name: str) -> str:
     return re.sub(r'\s+', '_', name.strip().lower())
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def main():
     # Load chunks
@@ -148,7 +148,7 @@ def main():
     done_ids: set[str] = set()
     if PROGRESS_FILE.exists():
         done_ids = set(json.loads(PROGRESS_FILE.read_text()))
-        print(f'  Resuming — {len(done_ids)} chunks already processed')
+        print(f'  Resuming â€” {len(done_ids)} chunks already processed')
 
     remaining = [c for c in chunks if c['id'] not in done_ids]
     print(f'  {len(remaining)} chunks to process')
@@ -159,7 +159,7 @@ def main():
 
     client = setup_groq()
 
-    # name → list of entity IDs (for ENTITY_COREF linking)
+    # name â†’ list of entity IDs (for ENTITY_COREF linking)
     name_to_entity_ids: dict[str, list[str]] = defaultdict(list)
 
     entity_buf: dict  = {}
@@ -191,7 +191,7 @@ def main():
                     'chunk_id': {'value': cid},
                 }
 
-                # HAS_ENTITY edge: Chunk → Entity
+                # HAS_ENTITY edge: Chunk â†’ Entity
                 edge_buf.setdefault(cid, {}) \
                         .setdefault('HAS_ENTITY', {}) \
                         .setdefault('Entity', {})[entity_id] = {}
@@ -221,9 +221,10 @@ def main():
     PROGRESS_FILE.write_text(json.dumps(processed_ids))
     print(f'\nDone. {total_entities} entity facts stored in TigerGraph.')
     print('Next step: python scripts/verify_entities.py  (optional check)')
-    print('           then restart the API server — pipeline3 will use entities automatically.')
+    print('           then restart the API server â€” pipeline3 will use entities automatically.')
 
 
 if __name__ == '__main__':
     os.chdir(Path(__file__).parent.parent)
     main()
+

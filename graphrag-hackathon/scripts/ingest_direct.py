@@ -28,12 +28,12 @@ ROOT = Path(__file__).parent.parent.resolve()
 PROGRESS_FILE = ROOT / "data" / "chunks" / "ingest_direct_progress.json"
 FAILED_FILE   = ROOT / "data" / "chunks" / "ingest_direct_failed.json"
 
-TG_HOST     = os.getenv("TG_HOST",     "https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io")
-TG_USER     = os.getenv("TG_USERNAME", "yashdharme6@gmail.com")
-TG_PASS     = os.getenv("TG_PASSWORD", "YOUR_TG_SECRET_HERE")
+TG_HOST     = os.getenv("TG_HOST",     "")
+TG_USER     = os.getenv("TG_USERNAME", "")
+TG_PASS     = os.getenv("TG_PASSWORD", "")
 TG_GRAPH    = os.getenv("TG_GRAPH",    "MyDatabase")
-TG_TOKEN    = "YOUR_TG_JWT_TOKEN_HERE"
-GEMINI_KEY  = os.getenv("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
+TG_TOKEN    = os.getenv("TG_PASSWORD", "")
+GEMINI_KEY  = os.getenv("GEMINI_API_KEY", "")
 EMBED_MODEL = "models/gemini-embedding-001"
 
 _lock = threading.Lock()

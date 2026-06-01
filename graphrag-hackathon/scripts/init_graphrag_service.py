@@ -1,4 +1,4 @@
-"""
+﻿"""
 Step 2 of GraphRAG setup.
 - Drops the old MyDatabase graph (custom schema)
 - Creates a fresh MyDatabase graph
@@ -17,8 +17,8 @@ from pyTigerGraph import TigerGraphConnection
 
 TG_HOST    = "https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io"
 TG_USER    = "yashdharme6@gmail.com"
-TG_PASS    = "YOUR_TG_SECRET_HERE"
-TG_TOKEN   = "YOUR_TG_JWT_TOKEN_HERE"
+TG_PASS    = os.getenv("TG_PASSWORD", "")
+TG_TOKEN   = os.getenv("TG_PASSWORD", "")
 GRAPH_NAME = "MyDatabase"
 GRAPHRAG_SERVICE = "http://localhost:8003"
 
@@ -46,11 +46,11 @@ def main():
         sys.exit(1)
 
     # 2. Call GraphRAG service initialize endpoint directly with Basic auth.
-    # Basic auth → GraphRAG service uses get_db_connection_pwd → reads ports from server_config.json (443).
+    # Basic auth â†’ GraphRAG service uses get_db_connection_pwd â†’ reads ports from server_config.json (443).
     # Bearer token path hardcodes sslPort=14240 which is blocked on Savanna.
     print(f"\nCalling {GRAPHRAG_SERVICE}/{GRAPH_NAME}/graphrag/initialize ...")
     print("  This installs GraphRAG schema (DocumentChunk, Concept, Community) + GSQL queries.")
-    print("  May take 2–5 minutes...")
+    print("  May take 2â€“5 minutes...")
     try:
         r = requests.post(
             f"{GRAPHRAG_SERVICE}/{GRAPH_NAME}/graphrag/initialize",
@@ -72,3 +72,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
