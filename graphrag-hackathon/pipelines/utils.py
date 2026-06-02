@@ -97,7 +97,7 @@ def gemini_generate(client, prompt: str, max_tokens: int = 400) -> str:
         except Exception as e:
             err = str(e)
             if ('429' in err or 'quota' in err.lower() or 'rate' in err.lower()) and attempt < 4:
-                wait = 15 * (2 ** attempt)   # exponential back-off: 15s, 30s, 60s, 120s
+                wait = 3 * (2 ** attempt)    # exponential back-off: 3s, 6s, 12s, 24s
                 print(f'  [rate limit] waiting {wait}s (attempt {attempt + 1}/5)…', flush=True)
                 time.sleep(wait)
             else:
