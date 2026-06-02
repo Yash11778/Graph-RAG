@@ -78,9 +78,8 @@ async def lifespan(app: FastAPI):
             load2()
             load3()
             _ensure_entity_cache()   # pre-warm TigerGraph entity ID cache
-            # Pre-warm BERTScore: loads distilbert model so the first user query
-            # doesn't pay the cold-start (~3s model download/load) at request time.
-            compute_bertscore(["warmup"], ["warmup"])
+            # BERTScore (distilbert + torch) is NOT preloaded — it costs ~300MB RAM
+            # which exceeds the free-tier 512MB limit. It loads lazily on first eval request.
             _preload_done = True
             print("INFO:     Models preloaded successfully", flush=True)
         except Exception as e:

@@ -412,7 +412,8 @@ function PipelineCard({ name, data, judge, t }) {
 /* ─── Results Section ─── */
 function ResultsSection({ result, t }) {
   const pct    = result.token_reduction_pct;
-  const graphFailed = (result.graphrag_status && result.graphrag_status !== 'ok') || pct == null;
+  const graphFailed  = result.graphrag_status && result.graphrag_status !== 'ok';
+  const basicRagFailed = result.basic_rag?.status === 'faiss_unavailable';
   const maxTok = Math.max(...PIPELINE_KEYS.map(k => result[k].total_tokens));
   const chartData = PIPELINE_KEYS.map(k => ({
     name: PIPELINE_LABELS[k], tokens: result[k].total_tokens, color: PIPELINE_COLORS[k],
@@ -420,7 +421,7 @@ function ResultsSection({ result, t }) {
 
   return (
     <div className="animate-fade-up">
-      {/* Honest failure notice — distinguishes a service outage from an entity miss */}
+      {/* GraphRAG failure notice — only shown when GraphRAG itself failed */}
       {graphFailed && (
         <div style={{
           background: t.errorBg, border: `1px solid ${t.errorBorder}`,
@@ -443,9 +444,8 @@ function ResultsSection({ result, t }) {
                 </>
               ) : (
                 <>
-                  This question references entities that aren't in the 100K-article graph, so there's
+                  This question references entities that aren't in the knowledge graph, so there's
                   no genuine context to retrieve — and therefore <strong>no token reduction to report</strong>.
-                  A retrieval miss is shown honestly here rather than as a fake percentage.
                   Try one of the <strong style={{ color: '#16a34a' }}>Featured Questions</strong> above,
                   which are verified to exist in the graph.
                 </>
@@ -455,8 +455,28 @@ function ResultsSection({ result, t }) {
         </div>
       )}
 
-      {/* Token Reduction Hero — only when GraphRAG genuinely retrieved + answered */}
-      {!graphFailed && (
+      {/* Basic RAG unavailable notice — separate from GraphRAG status */}
+      {!graphFailed && basicRagFailed && (
+        <div style={{
+          background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.35)',
+          borderRadius: 20, padding: '18px 24px', marginBottom: 20,
+          display: 'flex', alignItems: 'flex-start', gap: 14,
+        }}>
+          <Database size={22} color="#f97316" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#f97316', marginBottom: 4 }}>
+              Basic RAG unavailable — FAISS index not on this server
+            </div>
+            <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.6 }}>
+              GraphRAG retrieved context successfully and answered your question.
+              Token reduction vs Basic RAG cannot be shown because the FAISS vector index isn't deployed on this server.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Token Reduction Hero — only when GraphRAG retrieved AND Basic RAG is available to compare */}
+      {!graphFailed && !basicRagFailed && (
       <div style={{
         background: 'linear-gradient(135deg, #052e16 0%, #14532d 50%, #166534 100%)',
         borderRadius: 20, padding: '32px 36px', marginBottom: 20,
@@ -945,7 +965,19 @@ export default function App() {
                   </span>
                 </div>
               )}
-              {result && !loading && result.token_reduction_pct == null && (
+              {result && !loading && result.token_reduction_pct == null && result.graphrag?.status === 'ok' && (
+                <div style={{
+                  marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8,
+                  background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.35)',
+                  borderRadius: 10, padding: '8px 14px',
+                }}>
+                  <Database size={14} color="#f97316" />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#f97316' }}>
+                    Basic RAG unavailable — token reduction not computed
+                  </span>
+                </div>
+              )}
+              {result && !loading && result.graphrag_status && result.graphrag_status !== 'ok' && (
                 <div style={{
                   marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8,
                   background: t.errorBg, border: `1px solid ${t.errorBorder}`,

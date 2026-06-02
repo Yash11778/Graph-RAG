@@ -1,3 +1,4 @@
+import os
 import pickle
 import time
 from pathlib import Path
@@ -14,10 +15,33 @@ _client   = None
 _load_error: str = ""   # set once if FAISS files are missing; cleared on success
 
 
+def _try_download_faiss():
+    """Download FAISS index + chunks from FAISS_DOWNLOAD_URL if env var is set and files are missing."""
+    base_url = os.getenv('FAISS_DOWNLOAD_URL', '').rstrip('/')
+    if not base_url:
+        return
+    faiss_path  = _ROOT / 'data/chunks/rag_index.faiss'
+    chunks_path = _ROOT / 'data/chunks/chunks.pkl'
+    if faiss_path.exists() and chunks_path.exists():
+        return
+    faiss_path.parent.mkdir(parents=True, exist_ok=True)
+    import urllib.request
+    for fname, dest in [('rag_index.faiss', faiss_path), ('chunks.pkl', chunks_path)]:
+        if not dest.exists():
+            url = f"{base_url}/{fname}"
+            print(f"INFO:     Downloading {fname} from {url} …", flush=True)
+            try:
+                urllib.request.urlretrieve(url, dest)
+                print(f"INFO:     Downloaded {fname} ({dest.stat().st_size // 1_048_576} MB)", flush=True)
+            except Exception as e:
+                print(f"WARNING:  Failed to download {fname}: {e}", flush=True)
+
+
 def _load():
     global _embedder, _index, _chunks, _client, _load_error
     if _embedder is not None and _index is not None and _chunks is not None:
         return
+    _try_download_faiss()
     faiss_path  = _ROOT / 'data/chunks/rag_index.faiss'
     chunks_path = _ROOT / 'data/chunks/chunks.pkl'
     if not faiss_path.exists() or not chunks_path.exists():
