@@ -66,6 +66,9 @@ def _load():
     global _embedder, _index, _chunks, _client, _load_error
     if _embedder is not None and _index is not None and _chunks is not None:
         return
+    if os.getenv('DISABLE_BASIC_RAG', '').lower() in ('1', 'true', 'yes'):
+        _load_error = "Basic RAG is disabled on this server (DISABLE_BASIC_RAG=1)."
+        return
     _try_download_faiss()
     faiss_path  = _ROOT / 'data/chunks/rag_index.faiss'
     chunks_path = _ROOT / 'data/chunks/chunks.pkl'
