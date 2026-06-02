@@ -20,6 +20,10 @@ data/chunks/*.faiss.ckpt
 data/chunks/*.faiss.progress.json
 data/chunks/*.pkl
 data/chunks/*.jsonl
+# …but DO commit the small demo index (~2 MB total) — it's what deployed Basic RAG loads.
+!data/chunks/rag_index_demo.faiss
+!data/chunks/chunks_demo.pkl
+data/chunks/faiss_parts/
 data/ingest_progress.json
 data/chunks/failed_ingestion.json
 
