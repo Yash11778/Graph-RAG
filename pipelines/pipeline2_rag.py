@@ -77,7 +77,7 @@ def pipeline2(question: str, top_k: int = 8) -> dict:
         "Answer:"
     )
     start   = time.time()
-    answer  = gemini_generate(_client, prompt, max_tokens=500)
+    answer  = gemini_generate(_client, prompt, max_tokens=300)
     latency = round(time.time() - start, 3)
 
     p_tok  = count_tokens(prompt)
