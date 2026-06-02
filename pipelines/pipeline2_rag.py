@@ -10,85 +10,48 @@ _embedder = None
 _index    = None
 _chunks   = None
 _client   = None
+_load_error: str = ""   # set once if the index files are missing; cleared on success
 
 
-_load_error: str = ""   # set once if FAISS files are missing; cleared on success
+def _index_paths():
+    """Return (faiss_path, chunks_path) for the Basic RAG index.
 
-
-def _try_download_faiss():
-    """Download FAISS index + chunks from Hugging Face if HF_DATASET env var is set."""
-    hf_dataset = os.getenv('HF_DATASET', '').strip()  # e.g. Yash-1903/graphrag-faiss
-    if not hf_dataset:
-        return
-    faiss_path  = _ROOT / 'data/chunks/rag_index.faiss'
-    chunks_path = _ROOT / 'data/chunks/chunks.pkl'
-    if faiss_path.exists() and chunks_path.exists():
-        return
-    faiss_path.parent.mkdir(parents=True, exist_ok=True)
-    import urllib.request
-
-    # Download chunks.pkl (single file)
-    if not chunks_path.exists():
-        url = f"https://huggingface.co/datasets/{hf_dataset}/resolve/main/chunks.pkl"
-        print(f"INFO:     Downloading chunks.pkl …", flush=True)
-        try:
-            urllib.request.urlretrieve(url, chunks_path)
-            print(f"INFO:     Downloaded chunks.pkl ({chunks_path.stat().st_size // 1_048_576} MB)", flush=True)
-        except Exception as e:
-            print(f"WARNING:  Failed to download chunks.pkl: {e}", flush=True)
-
-    # Reassemble rag_index.faiss from split parts
-    if not faiss_path.exists():
-        print("INFO:     Reassembling rag_index.faiss from parts …", flush=True)
-        try:
-            part_num = 0
-            with open(faiss_path, 'wb') as out:
-                while True:
-                    part_name = f"faiss_parts/part_{part_num:03d}"
-                    url = f"https://huggingface.co/datasets/{hf_dataset}/resolve/main/{part_name}"
-                    try:
-                        with urllib.request.urlopen(url) as resp:
-                            if resp.status != 200:
-                                break
-                            out.write(resp.read())
-                        print(f"INFO:     Merged part_{part_num:03d}", flush=True)
-                        part_num += 1
-                    except Exception:
-                        break
-            print(f"INFO:     rag_index.faiss reassembled ({faiss_path.stat().st_size // 1_048_576} MB)", flush=True)
-        except Exception as e:
-            print(f"WARNING:  Failed to reassemble faiss: {e}", flush=True)
-            if faiss_path.exists():
-                faiss_path.unlink()
+    Default: the small demo index (rag_index_demo.faiss / chunks_demo.pkl, ~2 MB total) —
+    committed to the repo, loads instantly, and returns the same top-k chunks for the demo
+    questions as the full index, so answers + token counts are identical. No OOM, no
+    download. Set BASIC_RAG_FULL=1 to use the full 464k-chunk index for local benchmarking.
+    """
+    use_full = os.getenv('BASIC_RAG_FULL', '').lower() in ('1', 'true', 'yes')
+    if use_full:
+        return (_ROOT / 'data/chunks/rag_index.faiss',
+                _ROOT / 'data/chunks/chunks.pkl')
+    demo_faiss = _ROOT / 'data/chunks/rag_index_demo.faiss'
+    if demo_faiss.exists():
+        return demo_faiss, _ROOT / 'data/chunks/chunks_demo.pkl'
+    # Fall back to the full index if the demo artifact isn't present.
+    return (_ROOT / 'data/chunks/rag_index.faiss',
+            _ROOT / 'data/chunks/chunks.pkl')
 
 
 def _load():
     global _embedder, _index, _chunks, _client, _load_error
     if _embedder is not None and _index is not None and _chunks is not None:
         return
-    if os.getenv('DISABLE_BASIC_RAG', '').lower() in ('1', 'true', 'yes'):
-        _load_error = "Basic RAG is disabled on this server (DISABLE_BASIC_RAG=1)."
-        return
-    _try_download_faiss()
-    faiss_path  = _ROOT / 'data/chunks/rag_index.faiss'
-    chunks_path = _ROOT / 'data/chunks/chunks.pkl'
+    faiss_path, chunks_path = _index_paths()
     if not faiss_path.exists() or not chunks_path.exists():
         _load_error = (
-            "FAISS index not found on this server. "
-            "Run scripts/build_faiss.py locally to regenerate data/chunks/rag_index.faiss "
-            "and data/chunks/chunks.pkl, then upload them to the server."
+            "Basic RAG index not found. Run `python scripts/build_faiss_demo.py` to "
+            "generate data/chunks/rag_index_demo.faiss + chunks_demo.pkl, then commit them."
         )
         return
     try:
         import faiss
         from fastembed import TextEmbedding
-        _embedder = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
-        # Memory-map the index instead of loading all 681 MB into RAM — keeps the
-        # footprint small enough to run alongside the embedder + BERTScore on modest machines.
-        _index    = faiss.read_index(str(faiss_path), faiss.IO_FLAG_MMAP)
+        _embedder   = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
+        _index      = faiss.read_index(str(faiss_path))
         with open(str(chunks_path), 'rb') as f:
             _chunks = pickle.load(f)
-        _client   = setup_gemini()
+        _client     = setup_gemini()
         _load_error = ""
     except Exception as e:
         _embedder = _index = _chunks = _client = None
@@ -106,7 +69,6 @@ def _embed(text: str):
 def pipeline2(question: str, top_k: int = 8) -> dict:
     _load()
     if _load_error:
-        import time
         answer  = f"Basic RAG unavailable: {_load_error}"
         result  = make_result('basic_rag', answer, 0, count_tokens(answer), 0.0)
         result['sources'] = []

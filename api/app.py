@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import threading
@@ -46,6 +47,12 @@ def llm_judge(question: str, ground_truth: str, prediction: str) -> str:
 
 
 def compute_bertscore(predictions: list, references: list) -> dict:
+    # BERTScore loads torch + distilbert (~350 MB). On a 512 MB free-tier host that
+    # tips the process into OOM, so the deployed server sets DISABLE_BERTSCORE=1 and
+    # relies on the live LLM-as-a-Judge metric instead. The official BERTScore numbers
+    # come from the local benchmark run (eval/evaluate.py), which has no memory limit.
+    if os.getenv('DISABLE_BERTSCORE', '').lower() in ('1', 'true', 'yes'):
+        return {'raw_f1': 0.0, 'rescaled_f1': 0.0, 'bonus_hit': False}
     try:
         from bert_score import score
         with warnings.catch_warnings():
