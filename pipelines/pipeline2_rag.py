@@ -16,9 +16,9 @@ _load_error: str = ""   # set once if FAISS files are missing; cleared on succes
 
 
 def _try_download_faiss():
-    """Download FAISS index + chunks from FAISS_DOWNLOAD_URL if env var is set and files are missing."""
-    base_url = os.getenv('FAISS_DOWNLOAD_URL', '').rstrip('/')
-    if not base_url:
+    """Download FAISS index + chunks from Hugging Face if HF_DATASET env var is set."""
+    hf_dataset = os.getenv('HF_DATASET', '').strip()  # e.g. Yash-1903/graphrag-faiss
+    if not hf_dataset:
         return
     faiss_path  = _ROOT / 'data/chunks/rag_index.faiss'
     chunks_path = _ROOT / 'data/chunks/chunks.pkl'
@@ -26,15 +26,40 @@ def _try_download_faiss():
         return
     faiss_path.parent.mkdir(parents=True, exist_ok=True)
     import urllib.request
-    for fname, dest in [('rag_index.faiss', faiss_path), ('chunks.pkl', chunks_path)]:
-        if not dest.exists():
-            url = f"{base_url}/{fname}"
-            print(f"INFO:     Downloading {fname} from {url} …", flush=True)
-            try:
-                urllib.request.urlretrieve(url, dest)
-                print(f"INFO:     Downloaded {fname} ({dest.stat().st_size // 1_048_576} MB)", flush=True)
-            except Exception as e:
-                print(f"WARNING:  Failed to download {fname}: {e}", flush=True)
+
+    # Download chunks.pkl (single file)
+    if not chunks_path.exists():
+        url = f"https://huggingface.co/datasets/{hf_dataset}/resolve/main/chunks.pkl"
+        print(f"INFO:     Downloading chunks.pkl …", flush=True)
+        try:
+            urllib.request.urlretrieve(url, chunks_path)
+            print(f"INFO:     Downloaded chunks.pkl ({chunks_path.stat().st_size // 1_048_576} MB)", flush=True)
+        except Exception as e:
+            print(f"WARNING:  Failed to download chunks.pkl: {e}", flush=True)
+
+    # Reassemble rag_index.faiss from split parts
+    if not faiss_path.exists():
+        print("INFO:     Reassembling rag_index.faiss from parts …", flush=True)
+        try:
+            part_num = 0
+            with open(faiss_path, 'wb') as out:
+                while True:
+                    part_name = f"faiss_parts/part_{part_num:03d}"
+                    url = f"https://huggingface.co/datasets/{hf_dataset}/resolve/main/{part_name}"
+                    try:
+                        with urllib.request.urlopen(url) as resp:
+                            if resp.status != 200:
+                                break
+                            out.write(resp.read())
+                        print(f"INFO:     Merged part_{part_num:03d}", flush=True)
+                        part_num += 1
+                    except Exception:
+                        break
+            print(f"INFO:     rag_index.faiss reassembled ({faiss_path.stat().st_size // 1_048_576} MB)", flush=True)
+        except Exception as e:
+            print(f"WARNING:  Failed to reassemble faiss: {e}", flush=True)
+            if faiss_path.exists():
+                faiss_path.unlink()
 
 
 def _load():

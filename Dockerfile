@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libgomp1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libgomp1 wget && rm -rf /var/lib/apt/lists/*
 
 COPY api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python -c "from fastembed import TextEmbedding; list(TextEmbedding('sentence-transformers/all-MiniLM-L6-v2').embed(['warmup'])); print('fastembed model cached')"
 
 COPY . .
+
+# FAISS files are downloaded at runtime via HF_DATASET env var — no build-time download needed.
 
 ENV PYTHONUNBUFFERED=1
 
