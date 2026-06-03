@@ -8,7 +8,7 @@ numpy
 tiktoken
 
 # ── Pipeline 2 (Basic RAG): FAISS vector search ──────────────────
-faiss-cpu
+faiss-cpu==1.13.2
 fastembed
 
 # ── LLM: Gemini (new google-genai SDK — `from google import genai`)
