@@ -818,7 +818,7 @@ export default function App() {
             </p>
 
             {/* Stat cards */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 32 }}>
               {[
                 { icon: BookOpen, value: '100,850',    label: 'Wikipedia Articles' },
                 { icon: Hash,     value: '102.9M',     label: 'Tokens Indexed' },
@@ -835,6 +835,34 @@ export default function App() {
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 4, fontWeight: 500 }}>{label}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Knowledge domain pills */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>
+                102.9M tokens span 7 knowledge domains
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10 }}>
+                {[
+                  { icon: '💻', label: 'Free Software & Tech' },
+                  { icon: '🌍', label: 'World War II' },
+                  { icon: '🥶', label: 'Cold War & Alliances' },
+                  { icon: '🏛️', label: 'Leaders & Empires' },
+                  { icon: '⚛️', label: 'Science & Medicine' },
+                  { icon: '🌐', label: 'Nations & Geopolitics' },
+                  { icon: '⚔️', label: 'Wars & Conflicts' },
+                ].map(({ icon, label }) => (
+                  <div key={label} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)',
+                    borderRadius: 24, padding: '7px 16px',
+                    backdropFilter: 'blur(8px)',
+                  }}>
+                    <span style={{ fontSize: 15 }}>{icon}</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
