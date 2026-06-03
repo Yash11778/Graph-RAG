@@ -614,24 +614,6 @@ function ResultsSection({ result, t }) {
             </BarChart>
           </ResponsiveContainer>
 
-          {result.judge_graphrag && (
-            <div style={{
-              marginTop: 12, padding: '10px 12px',
-              background: result.judge_graphrag === 'PASS' ? 'rgba(22,163,74,0.1)' : 'rgba(239,68,68,0.1)',
-              border: `1px solid ${result.judge_graphrag === 'PASS' ? 'rgba(22,163,74,0.3)' : 'rgba(239,68,68,0.3)'}`,
-              borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              {result.judge_graphrag === 'PASS'
-                ? <CheckCircle2 size={14} color="#16a34a" />
-                : <XCircle size={14} color="#ef4444" />}
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: result.judge_graphrag === 'PASS' ? '#16a34a' : '#ef4444' }}>
-                  GraphRAG Judge: {result.judge_graphrag}
-                </div>
-                <div style={{ fontSize: 10, color: t.textSubtle }}>LLM-as-a-Judge evaluation</div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Pipeline cards — driven by PIPELINE_KEYS registry */}
