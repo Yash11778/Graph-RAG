@@ -11,9 +11,11 @@ Single GSQL call replaces ~40 sequential REST calls — typical latency ~2-4s.
 """
 import os
 import re
+import json
 import time
 import logging
 import threading
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -294,6 +296,74 @@ def _load():
         _gemini_client = setup_gemini()
 
 
+# ── Graph snapshot fallback ──────────────────────────────────────────────────────
+# A free-tier TigerGraph instance auto-suspends on idle (and goes down entirely if
+# credits run out), returning HTTP 500. To keep the live dashboard reliable, we cache
+# the graph's own retrieval output for the demo entities into data/graph_snapshot.json
+# and serve from it whenever the live graph is unreachable. The retrieval LOGIC is
+# unchanged — entity match → 1-hop expansion → compact description facts → token
+# budget — only the data source swaps. Benchmark numbers still come from the live graph.
+_SNAPSHOT_PATH   = Path(__file__).parent.parent / "data" / "graph_snapshot.json"
+_snapshot        = None
+_snapshot_loaded = False
+
+
+def _load_snapshot() -> dict:
+    global _snapshot, _snapshot_loaded
+    if _snapshot_loaded:
+        return _snapshot or {}
+    _snapshot_loaded = True
+    try:
+        if _SNAPSHOT_PATH.exists():
+            with open(_SNAPSHOT_PATH, encoding="utf-8") as f:
+                _snapshot = json.load(f).get("entities", {})
+                logger.info("Graph snapshot loaded: %d entities", len(_snapshot))
+    except Exception as e:
+        logger.warning("Graph snapshot load failed: %s", e)
+        _snapshot = None
+    return _snapshot or {}
+
+
+def _snapshot_retrieve(question: str) -> list[str]:
+    """Mirror of _tg_retrieve, reading from the committed graph snapshot instead of REST.
+    Same seed-matching + 1-hop expansion + entity-labelled facts, so the resulting
+    context (and token reduction) matches what the live graph would have returned."""
+    ents = _load_snapshot()
+    if not ents:
+        return []
+
+    candidates = list(dict.fromkeys(_extract_candidates(question)))
+    candidates.sort(key=_rank_key, reverse=True)
+    seeds = [c for c in candidates if c in ents]
+
+    # Drop a bare word already covered by a matched phrase (e.g. drop "war" when
+    # "cold-war" matched) — same pruning as the live path.
+    multiword = [s for s in seeds if "-" in s]
+    seeds = [s for s in seeds
+             if not ("-" not in s and any(s in m.split("-") for m in multiword))][:4]
+    if not seeds:
+        return []
+
+    neighbor_ids: list[str] = []
+    for s in seeds:
+        neighbor_ids.extend(ents.get(s, {}).get("neighbors", []))
+
+    seed_set = set(seeds)
+    all_ids  = list(dict.fromkeys(seeds + neighbor_ids))[:14]
+
+    seed_facts: list[str] = []
+    nbr_facts:  list[str] = []
+    for eid in all_ids:
+        facts    = ents.get(eid, {}).get("description", []) or []
+        label    = _entity_label(eid)
+        prefixed = [f"{label}: {f}" for f in facts]
+        (seed_facts if eid in seed_set else nbr_facts).extend(prefixed)
+
+    logger.info("Snapshot retrieved %d seed + %d neighbour facts",
+                len(seed_facts), len(nbr_facts))
+    return seed_facts + nbr_facts
+
+
 def _truncate_to_tokens(text: str, max_tok: int) -> str:
     if count_tokens(text) <= max_tok:
         return text
@@ -314,21 +384,20 @@ def pipeline3(question: str) -> dict:
     # they should complete instantly even on a cold server.
     t_start = time.time()
 
-    # Fail fast if the graph service is offline — don't hang ~20s on doomed lookups.
-    if not _tg_reachable():
-        answer  = "The TigerGraph knowledge-graph service is currently offline, so no graph context could be retrieved."
-        latency = round(time.time() - t_start, 3)
-        result  = make_result("graphrag", answer, 0, count_tokens(answer), latency)
-        result.update({
-            "sources":             [],
-            "context_tokens":      0,
-            "retriever":           "tigergraph_gsql",
-            "graph_context_found": False,
-            "status":              "tg_unavailable",
-        })
-        return result
-
-    tg_texts = _tg_retrieve(question)
+    # Prefer the live graph; fall back to the committed snapshot when it's unreachable
+    # (free-tier auto-suspend or exhausted credits → HTTP 500) or when a live query
+    # returns nothing. The snapshot is the graph's own cached output, so GraphRAG keeps
+    # working for the demo set regardless of instance state.
+    retriever = "tigergraph_gsql"
+    if _tg_reachable():
+        tg_texts = _tg_retrieve(question)
+    else:
+        tg_texts = []
+    if not tg_texts:
+        snap = _snapshot_retrieve(question)
+        if snap:
+            tg_texts  = snap
+            retriever = "tigergraph_snapshot"
 
     context_parts: list[str] = []
     seen:          set[str]  = set()
@@ -360,7 +429,7 @@ def pipeline3(question: str) -> dict:
         result.update({
             "sources":             [],
             "context_tokens":      0,
-            "retriever":           "tigergraph_gsql",
+            "retriever":           retriever,
             "graph_context_found": False,
             "status":              "no_context",
         })
@@ -383,7 +452,7 @@ def pipeline3(question: str) -> dict:
     result.update({
         "sources":             list(seen)[:5],
         "context_tokens":      count_tokens(context),
-        "retriever":           "tigergraph_gsql",
+        "retriever":           retriever,
         "graph_context_found": True,
         "status":              "ok",
     })
