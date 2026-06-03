@@ -1,0 +1,15 @@
+Connecting to TigerGraph at https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io...
+TigerGraph connected OK
+Already ingested: 0 — resuming
+Counting chunks...
+Total: 464,739 | Remaining: 464,739
+Workers: 20 | Embed batch: 100
+
+Prepared 4,648 batches of 100
+
+==================================================
+Ingestion complete
+  Ingested : 464,239
+  Failed   : 5
+  Progress : D:\HACKATHONS\Graph RAG\graphrag-hackathon\graphrag-hackathon\data\chunks\ingest_direct_progress.json
+==================================================

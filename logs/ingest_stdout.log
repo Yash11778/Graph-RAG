@@ -1,0 +1,5 @@
+GraphRAG service OK at http://localhost:8003
+Already ingested: 0 — resuming from there
+Counting chunks in data/chunks/chunks.jsonl...
+Total: 464,739 | Remaining: 464,739
+

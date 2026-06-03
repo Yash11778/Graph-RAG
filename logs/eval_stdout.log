@@ -1,0 +1,254 @@
+  [llm_only] judge=PASS tokens=169 latency=1.017s
+  [basic_rag] judge=PASS tokens=1436 latency=0.843s
+  [graphrag] judge=FAIL tokens=308 latency=5.485s
+  [llm_only] judge=FAIL tokens=101 latency=0.183s
+  [basic_rag] judge=PASS tokens=824 latency=0.209s
+  [graphrag] judge=PASS tokens=294 latency=5.615s
+  [llm_only] judge=PASS tokens=72 latency=0.15s
+  [basic_rag] judge=PASS tokens=1326 latency=0.532s
+  [graphrag] judge=PASS tokens=304 latency=5.395s
+  [llm_only] judge=FAIL tokens=57 latency=0.468s
+  [basic_rag] judge=PASS tokens=1177 latency=0.796s
+  [graphrag] judge=PASS tokens=294 latency=5.428s
+  [llm_only] judge=FAIL tokens=188 latency=0.386s
+  [basic_rag] judge=PASS tokens=1304 latency=13.127s
+  [graphrag] judge=PASS tokens=341 latency=5.583s
+  [llm_only] judge=PASS tokens=90 latency=0.24s
+  [basic_rag] judge=PASS tokens=977 latency=11.541s
+  [graphrag] judge=PASS tokens=324 latency=5.562s
+  [llm_only] judge=PASS tokens=95 latency=1.211s
+  [basic_rag] judge=PASS tokens=573 latency=7.453s
+  [graphrag] judge=PASS tokens=336 latency=5.545s
+  [llm_only] judge=PASS tokens=90 latency=2.804s
+  [basic_rag] judge=PASS tokens=929 latency=12.366s
+  [graphrag] judge=PASS tokens=301 latency=5.81s
+  [llm_only] judge=FAIL tokens=156 latency=0.777s
+  [basic_rag] judge=PASS tokens=1151 latency=13.835s
+  [graphrag] judge=PASS tokens=296 latency=5.437s
+  [llm_only] judge=PASS tokens=166 latency=0.481s
+  [basic_rag] judge=PASS tokens=1510 latency=15.369s
+  [graphrag] judge=PASS tokens=314 latency=5.466s
+  [llm_only] judge=PASS tokens=172 latency=1.632s
+  [basic_rag] judge=FAIL tokens=1516 latency=15.045s
+  [graphrag] judge=FAIL tokens=314 latency=5.441s
+  [llm_only] judge=PASS tokens=75 latency=1.199s
+  [basic_rag] judge=PASS tokens=1339 latency=15.625s
+  [graphrag] judge=PASS tokens=304 latency=5.552s
+  [llm_only] judge=PASS tokens=62 latency=0.17s
+  [basic_rag] judge=FAIL tokens=1471 latency=15.993s
+  [graphrag] judge=FAIL tokens=290 latency=5.61s
+  [llm_only] judge=FAIL tokens=63 latency=1.21s
+  [basic_rag] judge=PASS tokens=1133 latency=14.528s
+  [graphrag] judge=PASS tokens=125 latency=5.844s
+  [llm_only] judge=PASS tokens=64 latency=0.336s
+  [basic_rag] judge=PASS tokens=1324 latency=10.658s
+  [graphrag] judge=PASS tokens=294 latency=5.476s
+  [llm_only] judge=FAIL tokens=70 latency=0.163s
+  [basic_rag] judge=PASS tokens=1163 latency=13.534s
+  [graphrag] judge=PASS tokens=296 latency=5.408s
+  [llm_only] judge=FAIL tokens=58 latency=0.138s
+  [basic_rag] judge=PASS tokens=1321 latency=15.519s
+  [graphrag] judge=PASS tokens=295 latency=5.426s
+  [llm_only] judge=PASS tokens=54 latency=0.177s
+  [basic_rag] judge=PASS tokens=1391 latency=15.673s
+  [graphrag] judge=PASS tokens=297 latency=5.572s
+  [llm_only] judge=PASS tokens=58 latency=0.14s
+  [basic_rag] judge=PASS tokens=1336 latency=16.54s
+  [graphrag] judge=PASS tokens=294 latency=5.432s
+  [llm_only] judge=FAIL tokens=168 latency=0.642s
+  [basic_rag] judge=FAIL tokens=1512 latency=16.092s
+  [graphrag] judge=FAIL tokens=316 latency=5.523s
+  [llm_only] judge=PASS tokens=50 latency=1.331s
+  [basic_rag] judge=PASS tokens=1335 latency=13.733s
+  [graphrag] judge=PASS tokens=126 latency=5.406s
+  [llm_only] judge=FAIL tokens=94 latency=0.502s
+  [basic_rag] judge=PASS tokens=1298 latency=15.652s
+  [graphrag] judge=PASS tokens=301 latency=5.978s
+  [llm_only] judge=FAIL tokens=57 latency=0.293s
+  [basic_rag] judge=FAIL tokens=1446 latency=14.861s
+  [graphrag] judge=PASS tokens=292 latency=5.637s
+  [llm_only] judge=PASS tokens=65 latency=0.159s
+  [basic_rag] judge=FAIL tokens=1157 latency=12.114s
+  [graphrag] judge=FAIL tokens=295 latency=6.538s
+  [llm_only] judge=PASS tokens=89 latency=0.672s
+  [basic_rag] judge=PASS tokens=1186 latency=12.724s
+  [graphrag] judge=PASS tokens=324 latency=5.652s
+  [llm_only] judge=FAIL tokens=111 latency=1.34s
+  [basic_rag] judge=PASS tokens=1113 latency=13.625s
+  [graphrag] judge=PASS tokens=301 latency=5.43s
+  [llm_only] judge=PASS tokens=74 latency=0.183s
+  [basic_rag] judge=PASS tokens=1426 latency=15.65s
+  [graphrag] judge=FAIL tokens=304 latency=5.625s
+  [llm_only] judge=PASS tokens=84 latency=0.185s
+  [basic_rag] judge=PASS tokens=1161 latency=13.768s
+  [graphrag] judge=PASS tokens=270 latency=5.432s
+  [llm_only] judge=PASS tokens=69 latency=0.185s
+  [basic_rag] judge=PASS tokens=769 latency=10.508s
+  [graphrag] judge=PASS tokens=303 latency=5.533s
+  [llm_only] judge=PASS tokens=139 latency=0.345s
+  [basic_rag] judge=PASS tokens=1336 latency=15.889s
+  [graphrag] judge=PASS tokens=313 latency=5.589s
+  [llm_only] judge=FAIL tokens=92 latency=1.308s
+  [basic_rag] judge=PASS tokens=1310 latency=15.544s
+  [graphrag] judge=PASS tokens=289 latency=5.449s
+  [llm_only] judge=PASS tokens=175 latency=0.277s
+  [basic_rag] judge=PASS tokens=1208 latency=14.62s
+  [graphrag] judge=PASS tokens=306 latency=5.526s
+  [llm_only] judge=PASS tokens=70 latency=0.224s
+  [basic_rag] judge=PASS tokens=1241 latency=15.518s
+  [graphrag] judge=PASS tokens=310 latency=5.463s
+  [llm_only] judge=PASS tokens=101 latency=0.231s
+  [basic_rag] judge=PASS tokens=1259 latency=14.497s
+  [graphrag] judge=PASS tokens=306 latency=5.438s
+  [llm_only] judge=FAIL tokens=63 latency=1.229s
+  [basic_rag] judge=FAIL tokens=1091 latency=13.987s
+  [graphrag] judge=FAIL tokens=228 latency=5.432s
+  [llm_only] judge=PASS tokens=88 latency=0.168s
+  [basic_rag] judge=PASS tokens=1379 latency=12.737s
+  [graphrag] judge=PASS tokens=324 latency=5.468s
+  [llm_only] judge=FAIL tokens=148 latency=1.594s
+  [basic_rag] judge=FAIL tokens=1264 latency=12.852s
+  [graphrag] judge=PASS tokens=308 latency=5.432s
+  [llm_only] judge=FAIL tokens=67 latency=1.253s
+  [basic_rag] judge=PASS tokens=1273 latency=14.44s
+  [graphrag] judge=PASS tokens=306 latency=5.671s
+  [llm_only] judge=PASS tokens=70 latency=0.964s
+  [basic_rag] judge=PASS tokens=1200 latency=12.594s
+  [graphrag] judge=PASS tokens=327 latency=5.552s
+  [llm_only] judge=FAIL tokens=65 latency=1.301s
+  [basic_rag] judge=PASS tokens=1084 latency=12.675s
+  [graphrag] judge=PASS tokens=295 latency=5.41s
+  [llm_only] judge=FAIL tokens=171 latency=1.418s
+  [basic_rag] judge=PASS tokens=1187 latency=13.533s
+  [graphrag] judge=PASS tokens=311 latency=5.397s
+  [llm_only] judge=FAIL tokens=62 latency=1.21s
+  [basic_rag] judge=PASS tokens=1510 latency=14.828s
+  [graphrag] judge=PASS tokens=311 latency=5.479s
+  [llm_only] judge=FAIL tokens=157 latency=1.578s
+  [basic_rag] judge=FAIL tokens=1157 latency=12.779s
+  [graphrag] judge=FAIL tokens=305 latency=6.268s
+  [llm_only] judge=PASS tokens=89 latency=0.162s
+  [basic_rag] judge=PASS tokens=1358 latency=16.681s
+  [graphrag] judge=PASS tokens=337 latency=5.78s
+  [llm_only] judge=FAIL tokens=58 latency=0.145s
+  [basic_rag] judge=PASS tokens=1282 latency=14.432s
+  [graphrag] judge=PASS tokens=295 latency=5.628s
+  [llm_only] judge=PASS tokens=170 latency=0.365s
+  [basic_rag] judge=PASS tokens=1228 latency=12.586s
+  [graphrag] judge=FAIL tokens=205 latency=5.527s
+  [llm_only] judge=PASS tokens=139 latency=0.271s
+  [basic_rag] judge=FAIL tokens=1514 latency=14.775s
+  [graphrag] judge=PASS tokens=331 latency=5.908s
+  [llm_only] judge=FAIL tokens=61 latency=0.341s
+  [basic_rag] judge=PASS tokens=1322 latency=15.388s
+  [graphrag] judge=PASS tokens=296 latency=5.455s
+  [llm_only] judge=FAIL tokens=177 latency=0.376s
+  [basic_rag] judge=PASS tokens=1260 latency=13.973s
+  [graphrag] judge=PASS tokens=309 latency=6.896s
+  [llm_only] judge=FAIL tokens=187 latency=0.602s
+  [basic_rag] judge=FAIL tokens=1530 latency=16.218s
+  [graphrag] judge=FAIL tokens=346 latency=5.62s
+  [llm_only] judge=FAIL tokens=56 latency=1.705s
+  [basic_rag] judge=PASS tokens=964 latency=11.472s
+  [graphrag] judge=PASS tokens=293 latency=5.452s
+  [llm_only] judge=PASS tokens=89 latency=0.168s
+  [basic_rag] judge=PASS tokens=1364 latency=15.518s
+  [graphrag] judge=PASS tokens=337 latency=5.459s
+  [llm_only] judge=FAIL tokens=101 latency=2.483s
+  [basic_rag] judge=FAIL tokens=1196 latency=13.628s
+  [graphrag] judge=PASS tokens=303 latency=5.439s
+  [llm_only] judge=FAIL tokens=99 latency=2.192s
+  [basic_rag] judge=FAIL tokens=1283 latency=14.763s
+  [graphrag] judge=FAIL tokens=295 latency=5.603s
+  [llm_only] judge=PASS tokens=119 latency=0.225s
+  [basic_rag] judge=PASS tokens=1408 latency=15.582s
+  [graphrag] judge=PASS tokens=301 latency=5.76s
+  [llm_only] judge=FAIL tokens=124 latency=0.225s
+  [basic_rag] judge=PASS tokens=1255 latency=13.618s
+  [graphrag] judge=PASS tokens=306 latency=5.479s
+  [llm_only] judge=PASS tokens=56 latency=1.736s
+  [basic_rag] judge=PASS tokens=1269 latency=12.764s
+  [graphrag] judge=FAIL tokens=302 latency=5.481s
+  [llm_only] judge=FAIL tokens=82 latency=1.215s
+  [basic_rag] judge=PASS tokens=1062 latency=13.478s
+  [graphrag] judge=PASS tokens=309 latency=5.477s
+  [llm_only] judge=PASS tokens=93 latency=0.263s
+  [basic_rag] judge=PASS tokens=1288 latency=14.67s
+  [graphrag] judge=PASS tokens=155 latency=5.426s
+  [llm_only] judge=PASS tokens=165 latency=0.313s
+  [basic_rag] judge=PASS tokens=1508 latency=17.532s
+  [graphrag] judge=PASS tokens=314 latency=5.534s
+  [llm_only] judge=FAIL tokens=94 latency=1.235s
+  [basic_rag] judge=PASS tokens=1327 latency=14.505s
+  [graphrag] judge=FAIL tokens=300 latency=5.767s
+  [llm_only] judge=FAIL tokens=176 latency=0.31s
+  [basic_rag] judge=PASS tokens=1428 latency=14.6s
+  [graphrag] judge=PASS tokens=318 latency=5.52s
+  [llm_only] judge=FAIL tokens=104 latency=1.38s
+  [basic_rag] judge=FAIL tokens=1079 latency=11.877s
+  [graphrag] judge=FAIL tokens=301 latency=5.754s
+  [llm_only] judge=FAIL tokens=65 latency=0.186s
+  [basic_rag] judge=PASS tokens=1070 latency=11.665s
+  [graphrag] judge=PASS tokens=294 latency=5.586s
+  [llm_only] judge=FAIL tokens=125 latency=0.769s
+  [basic_rag] judge=PASS tokens=1487 latency=15.976s
+  [graphrag] judge=PASS tokens=312 latency=5.416s
+  [llm_only] judge=PASS tokens=150 latency=1.445s
+  [basic_rag] judge=PASS tokens=1362 latency=15.59s
+  [graphrag] judge=PASS tokens=299 latency=5.781s
+  [llm_only] judge=FAIL tokens=73 latency=0.201s
+  [basic_rag] judge=PASS tokens=1223 latency=14.649s
+  [graphrag] judge=PASS tokens=324 latency=5.857s
+  [llm_only] judge=FAIL tokens=80 latency=1.237s
+  [basic_rag] judge=FAIL tokens=1471 latency=15.96s
+  [graphrag] judge=PASS tokens=313 latency=5.369s
+  [llm_only] judge=PASS tokens=96 latency=2.227s
+  [basic_rag] judge=FAIL tokens=1485 latency=15.921s
+  [graphrag] judge=PASS tokens=280 latency=5.446s
+  [llm_only] judge=PASS tokens=88 latency=0.172s
+  [basic_rag] judge=PASS tokens=1305 latency=15.506s
+  [graphrag] judge=PASS tokens=265 latency=5.536s
+  [llm_only] judge=PASS tokens=67 latency=0.155s
+  [basic_rag] judge=PASS tokens=930 latency=11.391s
+  [graphrag] judge=PASS tokens=302 latency=5.473s
+  [llm_only] judge=FAIL tokens=169 latency=0.522s
+  [basic_rag] judge=PASS tokens=1492 latency=14.991s
+  [graphrag] judge=PASS tokens=306 latency=5.525s
+  [llm_only] judge=FAIL tokens=158 latency=1.406s
+  [basic_rag] judge=FAIL tokens=1502 latency=15.856s
+  [graphrag] judge=PASS tokens=338 latency=5.563s
+  [llm_only] judge=FAIL tokens=94 latency=2.553s
+  [basic_rag] judge=FAIL tokens=1482 latency=14.831s
+  [graphrag] judge=PASS tokens=298 latency=5.562s
+  [llm_only] judge=FAIL tokens=94 latency=0.323s
+  [basic_rag] judge=PASS tokens=1078 latency=12.538s
+  [graphrag] judge=PASS tokens=315 latency=5.535s
+
+Saved D:\HACKATHONS\Graph RAG\graphrag-hackathon\graphrag-hackathon\eval\results\eval_results.csv
+
+=== EVALUATION SUMMARY ===
+
+[llm_only]
+  pass_rate:   48.0%
+  avg_tokens:  102.5
+  avg_latency: 0.778s
+
+[basic_rag]
+  pass_rate:   77.3%
+  avg_tokens:  1265.5
+  avg_latency: 13.431s
+
+[graphrag]
+  pass_rate:   81.3%
+  avg_tokens:  297.2
+  avg_latency: 5.587s
+
+Token reduction (graphrag vs basic_rag): 76.5%
+
+Computing BERTScore...
+BERTScore raw_f1:      0.0
+BERTScore rescaled_f1: 0.0
+BERTScore bonus_hit:   False
+
+FINAL: token_reduction=76.5%, judge_pass_rate=81.3%, bertscore_rescaled=0.0
+BONUS STATUS: MISSED judge | MISSED bertscore
