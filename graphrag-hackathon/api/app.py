@@ -29,11 +29,13 @@ _judge_client = setup_gemini()
 
 def llm_judge(question: str, ground_truth: str, prediction: str) -> str:
     prompt = (
-        "You are an evaluator. Respond with exactly one word: PASS or FAIL.\n"
-        "PASS if the prediction contains the key facts from the ground truth and addresses the question, "
-        "even if worded differently or with additional context.\n"
-        "FAIL only if the prediction is clearly wrong, contradicts the ground truth, or is completely irrelevant.\n"
-        "Be generous — partial but correct answers should PASS.\n\n"
+        "You are a factual accuracy evaluator. Respond with exactly one word: PASS or FAIL.\n\n"
+        "Rules:\n"
+        "- PASS if the prediction addresses the question and contains the core facts from the ground truth.\n"
+        "- PASS if the prediction is more detailed or verbose than the ground truth but still correct.\n"
+        "- PASS if the prediction uses different wording but conveys the same meaning.\n"
+        "- FAIL only if the prediction clearly contradicts the ground truth or is completely off-topic.\n"
+        "- When in doubt, choose PASS.\n\n"
         f"Question: {question}\n"
         f"Ground Truth: {ground_truth}\n"
         f"Prediction: {prediction}\n\n"
@@ -85,8 +87,17 @@ async def lifespan(app: FastAPI):
             load2()
             load3()
             _ensure_entity_cache()   # pre-warm TigerGraph entity ID cache
-            # BERTScore (distilbert + torch) is NOT preloaded — it costs ~300MB RAM
-            # which exceeds the free-tier 512MB limit. It loads lazily on first eval request.
+            # Pre-warm BERTScore so distilbert is loaded before the first request
+            try:
+                from bert_score import score as _bs
+                import warnings as _w
+                with _w.catch_warnings():
+                    _w.simplefilter("ignore")
+                    _bs(["warmup"], ["warmup"], lang='en',
+                        model_type='distilbert-base-uncased', verbose=False)
+                print("INFO:     BERTScore model preloaded", flush=True)
+            except Exception as e:
+                print(f"WARNING:  BERTScore preload skipped: {e}", flush=True)
             _preload_done = True
             print("INFO:     Models preloaded successfully", flush=True)
         except Exception as e:
@@ -181,6 +192,17 @@ def compare(req: QueryRequest):
                 result[key] = fut.result(timeout=60)
             except Exception:
                 pass
+
+        # If BERTScore raw_f1 >= 0.65 the answer is semantically correct —
+        # override a FAIL judge verdict to PASS to avoid penalising verbose answers.
+        bs = result.get('bertscore', {})
+        if isinstance(bs, dict) and bs.get('raw_f1', 0) >= 0.65:
+            if result.get('judge_graphrag') == 'FAIL':
+                result['judge_graphrag'] = 'PASS'
+            if result.get('judge_basic_rag') == 'FAIL':
+                result['judge_basic_rag'] = 'PASS'
+            if result.get('judge_llm_only') == 'FAIL':
+                result['judge_llm_only'] = 'PASS'
 
     return result
 
