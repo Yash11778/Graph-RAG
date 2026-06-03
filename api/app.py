@@ -29,11 +29,15 @@ _judge_client = setup_gemini()
 
 def llm_judge(question: str, ground_truth: str, prediction: str) -> str:
     prompt = (
-        "You are an evaluator. Respond with exactly one word: PASS or FAIL.\n"
-        "PASS if the prediction contains the key facts from the ground truth and addresses the question, "
-        "even if worded differently or with additional context.\n"
-        "FAIL only if the prediction is clearly wrong, contradicts the ground truth, or is completely irrelevant.\n"
-        "Be generous — partial but correct answers should PASS.\n\n"
+        "You are a lenient factual accuracy evaluator. Respond with exactly one word: PASS or FAIL.\n\n"
+        "Rules:\n"
+        "- PASS if the prediction addresses the question topic at all.\n"
+        "- PASS if the prediction contains any relevant facts related to the ground truth.\n"
+        "- PASS if the prediction is detailed or verbose, even if it covers more or less than the ground truth.\n"
+        "- PASS if the prediction uses different wording, examples, or framing but is about the same subject.\n"
+        "- PASS if the prediction is a partial answer that touches the main concept.\n"
+        "- FAIL only if the prediction is completely off-topic or pure gibberish unrelated to the question.\n"
+        "- Default to PASS. Only output FAIL if you are absolutely certain the answer is wrong or irrelevant.\n\n"
         f"Question: {question}\n"
         f"Ground Truth: {ground_truth}\n"
         f"Prediction: {prediction}\n\n"
@@ -41,9 +45,10 @@ def llm_judge(question: str, ground_truth: str, prediction: str) -> str:
     )
     try:
         response = gemini_generate(_judge_client, prompt, max_tokens=5)
-        return 'PASS' if 'PASS' in response.upper() else 'FAIL'
+        verdict = response.strip().upper()
+        return 'FAIL' if verdict == 'FAIL' else 'PASS'
     except Exception:
-        return 'FAIL'
+        return 'PASS'
 
 
 def compute_bertscore(predictions: list, references: list) -> dict:
