@@ -1,3 +1,13 @@
+---
+title: GraphRAG API
+emoji: 🧠
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 8080
+pinned: false
+---
+
 # GraphRAG Pipeline Comparison — TigerGraph Hackathon Round 2
 
 > Proves **GraphRAG uses 81% fewer tokens** than Basic RAG while achieving **higher answer accuracy** (91.7% vs 83.3%)
