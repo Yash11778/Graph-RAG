@@ -10,10 +10,29 @@ pinned: false
 
 # GraphRAG Pipeline Comparison — TigerGraph Hackathon Round 2
 
-> Proves **GraphRAG uses 81% fewer tokens** than Basic RAG while achieving **higher answer accuracy** (91.7% vs 83.3%)
-> Built on the [TigerGraph GraphRAG repo](https://github.com/tigergraph/graphrag) with a 100M-token Wikipedia knowledge graph.
+> GraphRAG entity retrieval was rewritten to match the actual TigerGraph schema and query
+> the live graph directly (see `scripts/graphrag_queries.gsql`); the numbers below are
+> **pending a fresh benchmark run** against the corrected pipeline. The previous numbers
+> quoted here (91.7% / 80.9% / 0.889 BERTScore) came from a broken retrieval path that
+> silently fell back to a hand-built 31-entity snapshot instead of the live graph, and an
+> API judge with auto-pass logic — neither reflected a genuine run. Run
+> `python eval/evaluate.py` against `data/qa/qa_pairs.json` (the real 75-question set) and
+> replace this table with the actual output.
 
-**Dataset: 100,850 Wikipedia articles · 102.9M tokens (Gemini verified) · 464,739 indexed chunks**
+**Dataset: 63,632 U.S. court opinions (legal case law) · 117.5M tokens (Gemini `count_tokens` verified) · 9,632 real citation edges**
+
+> NOTE: this README predates the pivot from a Wikipedia corpus to a legal case-law corpus
+> and still describes the old pipeline in places below (chunk counts, example questions,
+> etc.) — treat the dataset stat line above and the Data Source & Licensing section as
+> current; the rest is pending a full rewrite.
+
+## Data Source & Licensing
+
+- **Source**: U.S. court opinions (state and federal), sourced via the [Pile of Law](https://huggingface.co/datasets/pile-of-law/pile-of-law) dataset's `courtlistener_opinions` split, which itself aggregates public [CourtListener](https://www.courtlistener.com/) data.
+- **Underlying content is public domain**: judicial opinions authored by judges in their official capacity are not copyrightable in the United States (government edict doctrine, confirmed for state courts by *Georgia v. Public.Resource.Org*, 2020). The case-law text itself carries no copyright restriction.
+- **Pile of Law's specific compiled/curated dataset artifact** is licensed `CC-BY-NC-SA-4.0` (non-commercial, share-alike) — this applies to their packaging/selection of the data, not the underlying public-domain opinion text. This hackathon submission is non-commercial (research/competition use), consistent with that license.
+- Court/case metadata (case name, court, year) was extracted from each opinion's own citation header using [eyecite](https://github.com/freelawproject/eyecite) (Free Law Project's own citation-parsing library — the same organization behind CourtListener), plus [courts-db](https://github.com/freelawproject/courts-db) for reporter/court resolution.
+- Citation graph edges were built from CourtListener's public `citation-map` bulk data (no auth required), filtered to edges where both the citing and cited opinion are present in this corpus.
 
 ---
 
@@ -21,15 +40,13 @@ pinned: false
 
 Three RAG pipelines run in parallel on every question. The live React dashboard shows token counts, latency, cost, LLM-as-a-Judge verdicts, and BERTScore side-by-side.
 
-Measured on 12 graph-aligned questions (`data/qa/qa_pairs_graph.json`) against the live TigerGraph graph — reproduce with `QA_FILE=data/qa/qa_pairs_graph.json python eval/evaluate.py`:
+Benchmark against the full 75-question set (`data/qa/qa_pairs.json`) against the live TigerGraph graph — reproduce with `python eval/evaluate.py`. (Table pending re-run — see note above.)
 
 | Pipeline | Strategy | Avg Tokens | Avg Latency | Pass Rate |
 |----------|----------|------------|-------------|-----------|
-| 1 — LLM-Only | Raw Gemini call, no retrieval | 553 | 3.93s | 100.0% |
-| 2 — Basic RAG | FAISS top-8 → Gemini | 2,019 | 1.71s | 83.3% |
-| 3 — **GraphRAG** | Entity seed + 1-hop TigerGraph descriptions → Gemini | **386** | **2.36s** | **91.7%** |
-
-GraphRAG beats Basic RAG on **all three**: token efficiency (**−80.9%**), accuracy (**+8.4 pts**, 91.7% vs 83.3%), and is latency-competitive (**2.36s** vs 1.71s) — with a **BERTScore F1 of 0.889** (rescaled 0.779, bonus threshold hit).
+| 1 — LLM-Only | Raw Gemini call, no retrieval | TBD | TBD | TBD |
+| 2 — Basic RAG | FAISS top-8 → Gemini | TBD | TBD | TBD |
+| 3 — **GraphRAG** | Entity seed + 1-hop TigerGraph ENTITY_COREF → Gemini | TBD | TBD | TBD |
 
 Latency is kept low by a connection-pooled HTTP session (reuses one TLS connection across the ~18 graph calls), a startup warm-up (token/connection/thread-pools/Gemini primed in the background), and a per-entity cache (repeated questions ≈ 1.2s).
 
@@ -53,12 +70,12 @@ Pipeline 2 — Basic RAG
   Question ──► FAISS (top_k=8, mmap) ──► 8 chunks as context ──► Gemini Flash ──► Answer
 
 Pipeline 3 — GraphRAG  [TigerGraph-powered]
-  Question ──► keyword → Entity seed match (most-specific first)
-                                          ──► TigerGraph:
-                                              • seed Entity `description` facts
-                                              • 1-hop RELATIONSHIP neighbour facts
-                                              • cached (1 REST call per entity)
-                                            Compact context (~300–500 tokens)
+  Question ──► keyword/phrase candidates
+                                          ──► TigerGraph (single GSQL call, graphrag_retrieve):
+                                              • Entity.name match (case-insensitive) → seeds
+                                              • 1-hop ENTITY_COREF neighbour expansion
+                                              • returns each entity's `fact` attribute
+                                            Compact context (~180 tokens)
                                           ──► Gemini Flash ──► Answer
 
 API (FastAPI, port 8080):  POST /compare  →  runs all 3 pipelines, returns JSON
@@ -192,27 +209,39 @@ Returns FAISS/embedder load status.
 
 ## How Pipeline 3 Uses TigerGraph GraphRAG
 
-```python
-# From pipelines/pipeline3_graphrag.py
-# 1. Extract candidate entity IDs from the question (uni/bi/tri-gram, hyphenated)
-seed_ids = _match_entities(question, max_seeds=6)   # parallel Entity vertex lookups
+Schema (built by `scripts/add_entity_schema.py` + `scripts/extract_entities.py`):
 
-# 2. Single GSQL traversal call does the hop + chunk + content fetch in one shot
-resp = requests.get(
-    f"{TG_HOST}/restpp/query/{GRAPH_NAME}/graphrag_traverse",
-    headers={"Authorization": f"Bearer {token}"},
-    params={"seeds": seed_ids, "chunk_limit": 12},
-)
-texts = resp.json()["results"][0]["@@texts"]
+```
+Article --HAS_CHUNK--> Chunk --HAS_ENTITY--> Entity(id, name, fact, chunk_id)
+                                                Entity <--ENTITY_COREF--> Entity
 ```
 
-The `graphrag_traverse` GSQL query performs, server-side in one round-trip:
-1. **Entity seeding** — match question keywords to `Entity` vertex IDs
-2. **Multi-hop traversal** (`num_hops=2`) — `Entity → RELATIONSHIP → DocumentChunk`
-3. **Compact fact retrieval** — returns short entity facts, not raw chunk text
+```python
+# From pipelines/pipeline3_graphrag.py
+# 1. Extract candidate name/phrase strings from the question (uni/bi/tri-gram)
+candidates = _extract_candidates(question)
 
-Context is capped at ~500 tokens, then Gemini synthesizes a concise answer. A single GSQL
-call replaces ~40 sequential REST calls (~4s vs ~26s).
+# 2. Single GSQL call: match Entity.name (case-insensitive) -> seeds,
+#    then 1-hop ENTITY_COREF expansion -> same real-world entity in other chunks/docs
+resp = requests.get(
+    f"{TG_HOST}/restpp/query/{GRAPH_NAME}/graphrag_retrieve",
+    headers={"Authorization": f"Bearer {token}"},
+    params={"candidateNames": candidates, "maxSeeds": 4, "maxNeighbors": 5},
+)
+entities = resp.json()["results"][0]["Result"]   # [{name, fact, chunk_id, is_seed}, ...]
+```
+
+The `graphrag_retrieve` query (`scripts/graphrag_queries.gsql`, installed via
+`scripts/install_graphrag_query.py`) performs, server-side in one round-trip:
+1. **Entity seeding** — match candidate strings against `Entity.name` (case-insensitive)
+2. **1-hop traversal** — `Entity -(ENTITY_COREF)- Entity`, the same real-world entity
+   mentioned in other chunks/documents
+3. **Compact fact retrieval** — returns each matched entity's `fact` attribute, not raw
+   chunk text
+
+Context is capped at ~180 tokens, then Gemini synthesizes a concise answer using the same
+300-token completion cap as Pipelines 1 and 2. Verify retrieval against the live graph
+with `python scripts/verify_graphrag_retrieval.py --qa-sample 10`.
 
 > **Honest reporting:** if no seed entity exists in the graph, Pipeline 3 returns a
 > `graph_context_found: false` flag and the API reports `token_reduction_pct: null` — a
@@ -224,10 +253,10 @@ call replaces ~40 sequential REST calls (~4s vs ~26s).
 
 | Criterion | Weight | Result |
 |-----------|--------|--------|
-| Token Reduction | 30% | **80.9%** fewer tokens vs Basic RAG (386 vs 2,019 avg) |
-| Answer Accuracy | 30% | **91.7%** GraphRAG pass rate (LLM-as-a-Judge) vs 83.3% Basic RAG · BERTScore F1 **0.889** |
-| Performance | 20% | **2.36s** avg/query (on par with Basic RAG's 1.71s) via connection pooling + warm-up; honest fast-fail when the graph is offline |
-| Engineering | 20% | Live dashboard + TigerGraph multi-hop retrieval + honest, reproducible eval |
+| Token Reduction | 30% | Pending re-run of `eval/evaluate.py` against the corrected pipeline (see note at top) |
+| Answer Accuracy | 30% | Pending re-run — judged with the single strict LLM-judge in `eval/evaluate.py` / `api/app.py`, no auto-pass |
+| Performance | 20% | Pending re-run — connection pooling + warm-up retained; honest fast-fail when the graph is offline |
+| Engineering | 20% | Live dashboard + TigerGraph retrieval against the real schema (`Entity.name/fact`, `ENTITY_COREF`) + honest, reproducible eval |
 
 ---
 

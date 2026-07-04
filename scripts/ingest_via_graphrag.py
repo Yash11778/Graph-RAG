@@ -1,4 +1,5 @@
-﻿"""
+import os
+"""
 Step 3 of GraphRAG setup.
 Ingests Wikipedia articles into TigerGraph using the GraphRAG schema,
 then triggers ECC (Eventual Consistency Checker) to:
@@ -27,7 +28,7 @@ from pathlib import Path
 import requests
 from tqdm import tqdm
 
-TG_HOST    = "https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io"
+TG_HOST    = os.environ["TG_HOST"]
 TG_TOKEN   = os.getenv("TG_PASSWORD", "")
 TG_GRAPH   = "MyDatabase"
 TG_HEADERS = {"Authorization": f"Bearer {TG_TOKEN}"}

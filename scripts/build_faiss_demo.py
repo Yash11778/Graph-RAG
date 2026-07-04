@@ -27,7 +27,7 @@ FULL_FAISS = ROOT / "data/chunks/rag_index.faiss"
 FULL_PKL   = ROOT / "data/chunks/chunks.pkl"
 OUT_FAISS  = ROOT / "data/chunks/rag_index_demo.faiss"
 OUT_PKL    = ROOT / "data/chunks/chunks_demo.pkl"
-QA_FILE    = ROOT / "data/qa/qa_pairs_graph.json"
+QA_FILE    = ROOT / "data/qa/qa_pairs.json"
 
 TOP_K = 30   # chunks to pull per question (Basic RAG retrieves top-8 at query time)
 DIM   = 384

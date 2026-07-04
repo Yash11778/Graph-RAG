@@ -2,7 +2,6 @@ import os
 import sys
 import time
 import threading
-import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,59 +19,7 @@ from pydantic import BaseModel
 from pipelines.pipeline1_llm import pipeline1
 from pipelines.pipeline2_rag import pipeline2
 from pipelines.pipeline3_graphrag import pipeline3
-from pipelines.utils import gemini_generate, setup_gemini
-
-
-# ── LLM judge ─────────────────────────────────────────────────────────────────
-_judge_client = setup_gemini()
-
-
-def llm_judge(question: str, ground_truth: str, prediction: str) -> str:
-    prompt = (
-        "You are a lenient factual accuracy evaluator. Respond with exactly one word: PASS or FAIL.\n\n"
-        "Rules:\n"
-        "- PASS if the prediction addresses the question topic at all.\n"
-        "- PASS if the prediction contains any relevant facts related to the ground truth.\n"
-        "- PASS if the prediction is detailed or verbose, even if it covers more or less than the ground truth.\n"
-        "- PASS if the prediction uses different wording, examples, or framing but is about the same subject.\n"
-        "- PASS if the prediction is a partial answer that touches the main concept.\n"
-        "- FAIL only if the prediction is completely off-topic or pure gibberish unrelated to the question.\n"
-        "- Default to PASS. Only output FAIL if you are absolutely certain the answer is wrong or irrelevant.\n\n"
-        f"Question: {question}\n"
-        f"Ground Truth: {ground_truth}\n"
-        f"Prediction: {prediction}\n\n"
-        "Answer (PASS or FAIL):"
-    )
-    try:
-        response = gemini_generate(_judge_client, prompt, max_tokens=5)
-        verdict = response.strip().upper()
-        return 'FAIL' if verdict == 'FAIL' else 'PASS'
-    except Exception:
-        return 'PASS'
-
-
-def compute_bertscore(predictions: list, references: list) -> dict:
-    # BERTScore loads torch + distilbert (~350 MB). On a 512 MB free-tier host that
-    # tips the process into OOM, so the deployed server sets DISABLE_BERTSCORE=1 and
-    # relies on the live LLM-as-a-Judge metric instead. The official BERTScore numbers
-    # come from the local benchmark run (eval/evaluate.py), which has no memory limit.
-    if os.getenv('DISABLE_BERTSCORE', '').lower() in ('1', 'true', 'yes'):
-        return {'raw_f1': 0.0, 'rescaled_f1': 0.0, 'bonus_hit': False}
-    try:
-        from bert_score import score
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            _, _, F1 = score(predictions, references, lang='en',
-                             model_type='distilbert-base-uncased', verbose=False)
-        raw_f1   = F1.mean().item()
-        rescaled = (raw_f1 - 0.5) / 0.5
-        return {
-            'raw_f1':      round(raw_f1, 4),
-            'rescaled_f1': round(rescaled, 4),
-            'bonus_hit':   rescaled >= 0.55 or raw_f1 >= 0.88,
-        }
-    except Exception:
-        return {'raw_f1': 0.0, 'rescaled_f1': 0.0, 'bonus_hit': False}
+from eval.judge import llm_judge, compute_bertscore
 
 
 # ── Startup: preload models in background so first request is fast ─────────────
@@ -185,18 +132,12 @@ def compare(req: QueryRequest):
             try:
                 result[key] = fut.result(timeout=60)
             except Exception:
-                pass
+                # Honest failure -- no key means "judge did not run", not "it passed".
+                result[key] = 'ERROR'
 
-        # If GraphRAG had no graph context, it cannot be fairly judged — auto-PASS.
-        if not graphrag_ok:
-            result['judge_graphrag'] = 'PASS'
-
-        # BERTScore override: if semantic similarity is high, override any FAIL verdicts.
-        bs = result.get('bertscore', {})
-        if isinstance(bs, dict) and bs.get('raw_f1', 0) >= 0.60:
-            for k in ('judge_graphrag', 'judge_basic_rag', 'judge_llm_only'):
-                if result.get(k) == 'FAIL':
-                    result[k] = 'PASS'
+        # If GraphRAG had no graph context, it produced no grounded answer and must be
+        # judged like anything else -- a no-context miss should show up as a FAIL in
+        # the reported pass rate, not be silently excused.
 
     return result
 

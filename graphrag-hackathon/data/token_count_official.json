@@ -1,7 +1,0 @@
-{
-  "total_tokens": 102886822,
-  "total_articles": 100850,
-  "model": "gemini-2.0-flash",
-  "input_file": "data\\raw\\dataset_100m.jsonl",
-  "errors": 0
-}

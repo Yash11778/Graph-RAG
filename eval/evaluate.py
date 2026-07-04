@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import warnings
 from pathlib import Path
 
 # Suppress HuggingFace / transformers noise before any imports
@@ -20,9 +19,7 @@ sys.path.insert(0, str(ROOT))
 from pipelines.pipeline1_llm import pipeline1
 from pipelines.pipeline2_rag import pipeline2
 from pipelines.pipeline3_graphrag import pipeline3
-from pipelines.utils import gemini_generate, setup_gemini
-
-_judge_client = setup_gemini()
+from eval.judge import llm_judge, compute_bertscore
 
 PIPELINES = [
     ('llm_only',  pipeline1),
@@ -31,44 +28,11 @@ PIPELINES = [
 ]
 
 
-def llm_judge(question: str, ground_truth: str, prediction: str) -> str:
-    prompt = (
-        "You are an evaluator. Respond with exactly one word: PASS or FAIL.\n"
-        "PASS if the prediction contains the key facts from the ground truth and addresses the question, even if worded differently or with additional context.\n"
-        "FAIL only if the prediction is clearly wrong, contradicts the ground truth, or is completely irrelevant.\n"
-        "Be generous — partial but correct answers should PASS.\n\n"
-        f"Question: {question}\n"
-        f"Ground Truth: {ground_truth}\n"
-        f"Prediction: {prediction}\n\n"
-        "Answer (PASS or FAIL):"
-    )
-    response = gemini_generate(_judge_client, prompt, max_tokens=5)
-    return 'PASS' if 'PASS' in response.upper() else 'FAIL'
-
-
-def compute_bertscore(predictions: list, references: list) -> dict:
-    try:
-        from bert_score import score
-    except ImportError:
-        return {'raw_f1': 0.0, 'rescaled_f1': 0.0, 'bonus_hit': False, 'error': 'bert_score not installed'}
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        _, _, F1 = score(predictions, references, lang='en',
-                         model_type='distilbert-base-uncased', verbose=False)
-    raw_f1   = F1.mean().item()
-    rescaled = (raw_f1 - 0.5) / 0.5
-    return {
-        'raw_f1':       round(raw_f1, 4),
-        'rescaled_f1':  round(rescaled, 4),
-        'bonus_hit':    rescaled >= 0.55 or raw_f1 >= 0.88,
-    }
-
-
 def main():
-    # QA file is configurable so we can evaluate against the set that matches the
-    # CURRENT TigerGraph graph (data/qa/qa_pairs_graph.json) rather than the stale one.
-    qa_rel  = os.environ.get('QA_FILE', 'data/qa/qa_pairs.json')
-    qa_path = ROOT / qa_rel
+    # Always the real benchmark set -- a smaller "graph-aligned" set used to exist
+    # (qa_pairs_graph.json) that was curated to match a fabricated offline snapshot
+    # rather than the live graph. It's been removed; this is the only QA file now.
+    qa_path = ROOT / 'data/qa/qa_pairs.json'
     print(f'Using QA file: {qa_path}')
     with open(qa_path, encoding='utf-8') as f:
         qa_pairs = json.load(f)

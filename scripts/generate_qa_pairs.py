@@ -1,10 +1,10 @@
 """
 Generate QA pairs grounded in the actual dataset.
-For Round 2: samples from dataset_100m.jsonl, targets 75 pairs.
+For Round 2: samples from dataset_100m_enriched.jsonl, targets 75 pairs.
 
 Usage:
     python scripts/generate_qa_pairs.py
-    python scripts/generate_qa_pairs.py --input data/raw/dataset_100m.jsonl --target 75
+    python scripts/generate_qa_pairs.py --input data/raw/dataset_100m_enriched.jsonl --target 75
 """
 
 import argparse
@@ -148,7 +148,7 @@ def main(input_path: str, output_path: str, target: int, seed: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="data/raw/dataset_100m.jsonl")
+    parser.add_argument("--input", default="data/raw/dataset_100m_enriched.jsonl")
     parser.add_argument("--output", default="data/qa/qa_pairs.json")
     parser.add_argument("--target", type=int, default=75)
     parser.add_argument("--seed", type=int, default=42)

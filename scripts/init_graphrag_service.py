@@ -1,4 +1,5 @@
-﻿"""
+import os
+"""
 Step 2 of GraphRAG setup.
 - Drops the old MyDatabase graph (custom schema)
 - Creates a fresh MyDatabase graph
@@ -15,7 +16,7 @@ import time
 import requests
 from pyTigerGraph import TigerGraphConnection
 
-TG_HOST    = "https://tg-cddb2056-27e0-4388-87a8-8be8de814ed5.tg-2635877100.i.tgcloud.io"
+TG_HOST    = os.environ["TG_HOST"]
 TG_USER    = "yashdharme6@gmail.com"
 TG_PASS    = os.getenv("TG_PASSWORD", "")
 TG_TOKEN   = os.getenv("TG_PASSWORD", "")

@@ -2,11 +2,11 @@
 Preprocess dataset JSONL → chunked JSONL for FAISS + TigerGraph ingestion.
 
 Reads from INPUT_PATH, writes to OUTPUT_PATH.
-Set INPUT to dataset_100m.jsonl for Round 2.
+Set INPUT to dataset_100m_enriched.jsonl for Round 2.
 
 Usage:
     python scripts/preprocess.py
-    python scripts/preprocess.py --input data/raw/dataset_100m.jsonl --output data/chunks/chunks.jsonl
+    python scripts/preprocess.py --input data/raw/dataset_100m_enriched.jsonl --output data/chunks/chunks.jsonl
 """
 
 import argparse
@@ -97,7 +97,7 @@ def main(input_path: str, output_path: str, max_tok: int, overlap: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="data/raw/dataset_100m.jsonl")
+    parser.add_argument("--input", default="data/raw/dataset_100m_enriched.jsonl")
     parser.add_argument("--output", default="data/chunks/chunks.jsonl")
     parser.add_argument("--max-tok", type=int, default=256)
     parser.add_argument("--overlap", type=int, default=32)

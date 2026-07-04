@@ -1,0 +1,36 @@
+// Real GraphRAG retrieval query — matches the actual schema created by add_entity_schema.py:
+//   Article --HAS_CHUNK--> Chunk --HAS_ENTITY--> Entity(id, name, fact, chunk_id)
+//                                                   Entity <--ENTITY_COREF--> Entity
+//
+// Previous pipeline3 code queried a nonexistent `description` attribute and a nonexistent
+// `RELATIONSHIP` edge type — this query uses the real attributes (`name`, `fact`) and the
+// real edge (`ENTITY_COREF`) so it can actually return data from the live graph.
+//
+// Install once:
+//   gsql -g MyDatabase scripts/graphrag_queries.gsql
+//   (or POST the body to /gsql/v1/statements, then GET /gsql/v1/queries/{name}/install)
+
+USE GRAPH MyDatabase
+
+CREATE OR REPLACE QUERY graphrag_retrieve(SET<STRING> candidateNames, INT maxSeeds = 4, INT maxNeighbors = 5) FOR GRAPH MyDatabase SYNTAX V2 {
+  // Case-insensitive match: an Entity's `name` matches if its lowercased value is one of
+  // the lowercased candidate keyword/phrase strings the caller extracted from the question.
+  OrAccum @is_seed = false;
+
+  Seeds = SELECT e FROM Entity:e
+          WHERE candidateNames.contains(lower(e.name))
+          LIMIT maxSeeds
+          POST-ACCUM e.@is_seed = true;
+
+  // 1-hop expansion along ENTITY_COREF: same real-world entity mentioned in other chunks/
+  // documents — this is the actual "multi-hop, cross-document" reasoning GraphRAG is meant
+  // to provide over plain vector search.
+  Neighbors = SELECT n FROM Seeds:s -(ENTITY_COREF:e)- Entity:n
+              LIMIT maxNeighbors;
+
+  Result = Seeds UNION Neighbors;
+
+  PRINT Result[Result.id, Result.name, Result.fact, Result.chunk_id, Result.@is_seed];
+}
+
+INSTALL QUERY graphrag_retrieve

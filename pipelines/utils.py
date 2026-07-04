@@ -27,11 +27,6 @@ def setup_gemini():
     return _client
 
 
-def setup_groq():
-    """Backwards-compatibility shim — delegates to setup_gemini."""
-    return setup_gemini()
-
-
 def count_tokens(text: str) -> int:
     return len(enc.encode(text))
 
@@ -102,8 +97,3 @@ def gemini_generate(client, prompt: str, max_tokens: int = 400) -> str:
                 time.sleep(wait)
             else:
                 raise
-
-
-def groq_generate(client, prompt: str, max_tokens: int = 400) -> str:
-    """Backwards-compatibility shim — delegates to gemini_generate."""
-    return gemini_generate(client, prompt, max_tokens)

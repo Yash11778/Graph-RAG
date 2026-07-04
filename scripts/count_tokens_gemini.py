@@ -1,10 +1,10 @@
 """
-Count tokens in dataset_100m.jsonl using Gemini's count_tokens API.
+Count tokens in dataset_100m_enriched.jsonl using Gemini's count_tokens API.
 Required by hackathon judges to document official token count.
 
 Usage:
     python scripts/count_tokens_gemini.py
-    python scripts/count_tokens_gemini.py --input data/raw/dataset_100m.jsonl
+    python scripts/count_tokens_gemini.py --input data/raw/dataset_100m_enriched.jsonl
 """
 
 import argparse
@@ -112,8 +112,8 @@ def main(input_path: str, model: str, batch_size: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="data/raw/dataset_100m.jsonl")
-    parser.add_argument("--model", default="gemini-2.0-flash")
+    parser.add_argument("--input", default="data/raw/dataset_100m_enriched.jsonl")
+    parser.add_argument("--model", default=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
     parser.add_argument("--batch-size", type=int, default=50,
                         help="Articles per count_tokens API call (reduce if hitting limits)")
     args = parser.parse_args()
